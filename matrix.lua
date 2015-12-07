@@ -36,22 +36,21 @@ function matrix.zeros(dim, ...)
 end
 
 -- static initializer
--- matrix.lambda(dim1, ..., dimN, function(i1, ..., iN) ... end)
-function matrix.lambda(...)
-	local size = {...}
-	local f = table.remove(size)
-	assert(type(f) == 'function')
+-- matrix.lambda({dim1, ..., dimN}, function(i1, ..., iN) ... end)
+function matrix.lambda(size, f)
 	if #size == 0 then return f() end
 	local self = matrix.zeros(table.unpack(size))
 	for i in self:iter() do
-		self[i] = f(table.unpack(i)) 
+		local x = assert(f(table.unpack(i)))
+		assert(type(x) == 'number')
+		self[i] = x
 	end
 	return self
 end
 
 function matrix:size(sizes, offset)
 	offset = offset or 1
-	sizes = sizes or {}
+	sizes = sizes or matrix{}
 	sizes[offset] = #self
 	if type(self[1]) == 'number' then
 		for i=2,#self do
@@ -61,9 +60,9 @@ function matrix:size(sizes, offset)
 		for i=2,#self do
 			assert(#self[1] == #self[i], "matrix had a bad dimension")
 		end
-		self[1]:size(sizes,2)
+		self[1]:size(sizes,offset+1)
 	end
-	return matrix(sizes)
+	return sizes
 end
 
 function matrix:degree()
@@ -153,7 +152,7 @@ function matrix:iter()
 			i[j] = 1
 		end
 		repeat
-			coroutine.yield(table.unpack(i))
+			coroutine.yield(matrix(i))
 			for j=1,#i do
 				i[j] = i[j] + 1
 				if i[j] <= size[j] then break end
@@ -212,26 +211,34 @@ function matrix.inner(a,b,metric,aj,bj)
 	local sbj = ssb:remove(bj)
 	assert(saj == sbj, "inner dimensions must be equal")
 	local sc = table(ssa):append(ssb)
-	return matrix.lambda(table.unpack(sc), function(...)
+	return matrix.lambda(sc, function(...)
 		local i = {...}
-		local ai = table{table.unpack(i,1,#sa-1)}
-		ai:insert(aj,nil)
-		local bi = table{table.unpack(i,#sa)}
-		bi:insert(bj,nil)
+		local ia = table{table.unpack(i,1,#sa-1)}
+		ia:insert(aj,'false')
+		local ib = table{table.unpack(i,#sa)}
+		ib:insert(bj,'false')
 		local sum = 0
 		if metric then
 			for u=1,saj do
 				for v=1,sbj do
-					ai[#sa] = u
-					bi[1] = v
-					sum = sum + a[ai] * b[bi] * metric[u][v]
+					ia[aj] = u
+					ib[bj] = v
+					local ai = a[ia]
+					local bi = b[ib]
+					assert(type(ai) == 'number')
+					assert(type(bi) == 'number')
+					sum = sum + metric[u][v] * ai * bi
 				end
 			end
 		else
 			for u=1,saj do
-				ai[#sa] = u
-				bi[1] = u
-				sum = sum + a[ai] * b[bi]
+				ia[aj] = u
+				ib[bj] = u
+				local ai = a[ia]
+				local bi = b[ib]
+				assert(type(ai) == 'number')
+				assert(type(bi) == 'number')
+				sum = sum + ai * bi
 			end
 		end
 		return sum
