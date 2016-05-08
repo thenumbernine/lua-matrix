@@ -128,6 +128,14 @@ function matrix:__newindex(i,v)
 	end
 end
 
+function matrix.__unm(a)
+	local c = matrix(a)
+	for i=1,#c do
+		c[i] = -c[i]
+	end
+	return c
+end
+
 function matrix.__add(a,b)
 	local c = matrix(a)
 	for i=1,#c do
@@ -251,6 +259,15 @@ end
 -- or maybe inner <=> matrix multiplication / dot products?
 matrix.__mul = matrix.inner
 
+-- scalar division
+function matrix.__div(a,b)
+	assert(matrix.is(a))
+	assert(type(b) == 'number')
+	return matrix.lambda(a:size(), function(...)
+		return a[{...}] / b
+	end)
+end
+
 -- Frobenius norm
 function matrix:norm()
 	local sum = 0
@@ -269,6 +286,17 @@ function matrix.__eq(a,b)
 		if a[i] ~= b[i] then return false end
 	end
 	return true
+end
+
+function matrix:transpose(aj,bj)
+	--dimensions to transpose
+	aj = aj or 1
+	bj = bj or 2
+	return matrix.lambda(self:size(), function(...)
+		local si = {...}
+		si[aj], si[bj] = si[bj], si[aj]
+		return self[si]
+	end)
 end
 
 return matrix
