@@ -174,8 +174,8 @@ function matrix:iter()
 end
 
 function matrix.scale(a,s)
-	assert(type(s) == 'number')
 	if type(a) == 'number' then return a * b end
+	assert(type(s) == 'number')
 	a = matrix(a)
 	for i in a:iter() do
 		a[i] = a[i] * s
@@ -268,15 +268,24 @@ function matrix.__div(a,b)
 	end)
 end
 
+-- what is the name of this operation? it's dot for vectors.  it and itself on matrices is the Frobenius norm.  
+function matrix.dot(a,b)
+	assert(#a == #b)
+	local sum = 0
+	for i=1,#a do
+		local ai = a[i]
+		if matrix.is(ai) then
+			sum = sum + ai:dot(b[i])
+		else
+			sum = sum + ai * b[i]
+		end
+	end
+	return sum
+end
+
 -- Frobenius norm
 function matrix:norm()
-	local sum = 0
-	for i=1,#self do
-		local x = self[i]
-		if matrix.is(x) then x = x:norm() end
-		sum = sum + x * x
-	end
-	return math.sqrt(sum)
+	return math.sqrt(self:dot(self))
 end
 
 function matrix.__eq(a,b)
