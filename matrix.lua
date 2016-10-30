@@ -138,8 +138,14 @@ end
 
 function matrix.__add(a,b)
 	local c = matrix(a)
-	for i=1,#c do
-		c[i] = c[i] + b[i]
+	if type(b) == 'number' then
+		for i=1,#c do
+			c[i] = c[i] + b
+		end
+	else
+		for i=1,#c do
+			c[i] = c[i] + b[i]
+		end
 	end
 	return c
 end
@@ -286,6 +292,22 @@ end
 -- Frobenius norm
 function matrix:norm()
 	return math.sqrt(self:dot(self))
+end
+
+function matrix:normL1()
+	local l = 0
+	for i in self:iter() do
+		l = l + math.abs(self[i])
+	end
+	return l
+end
+
+function matrix:normLInf()
+	local l = 0
+	for i in self:iter() do
+		l = math.max(l, math.abs(self[i]))
+	end
+	return l
 end
 
 function matrix.__eq(a,b)
