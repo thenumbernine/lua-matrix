@@ -42,7 +42,6 @@ function matrix.lambda(size, f)
 	local self = matrix.zeros(table.unpack(size))
 	for i in self:iter() do
 		local x = assert(f(table.unpack(i)))
-		assert(type(x) == 'number')
 		self[i] = x
 	end
 	return self
@@ -152,8 +151,14 @@ end
 
 function matrix.__sub(a,b)
 	local c = matrix(a)
-	for i=1,#c do
-		c[i] = c[i] - b[i]
+	if type(b) == 'number' then
+		for i=1,#c do
+			c[i] = c[i] - b
+		end
+	else
+		for i=1,#c do
+			c[i] = c[i] - b[i]
+		end
 	end
 	return c
 end
