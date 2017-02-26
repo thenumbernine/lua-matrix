@@ -328,7 +328,9 @@ function matrix:transpose(aj,bj)
 	--dimensions to transpose
 	aj = aj or 1
 	bj = bj or 2
-	return matrix.lambda(self:size(), function(...)
+	local size = self:size()
+	size[aj], size[bj] = size[bj], size[aj]
+	return matrix.lambda(size, function(...)
 		local si = {...}
 		si[aj], si[bj] = si[bj], si[aj]
 		return self[si]
