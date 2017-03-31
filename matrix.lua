@@ -279,6 +279,48 @@ function matrix.__div(a,b)
 	end)
 end
 
+function matrix.mulElem(a,b)
+	if not matrix.is(a) and not matrix.is(b) then
+		return a * b
+	end
+	if matrix.is(a) and not matrix.is(b) then
+		return a:size():lambda(function(...)
+			return a[{...}] * b
+		end)
+	end
+	if not matrix.is(a) and matrix.is(b) then
+		return b:size():lambda(function(...)
+			return a * b[{...}]
+		end)
+	end
+	assert(a:size() == b:size())
+	return a:size():lambda(function(...)
+		local i = {...}
+		return a[i] * b[i]
+	end)
+end
+
+function matrix.divElem(a,b)
+	if not matrix.is(a) and not matrix.is(b) then
+		return a / b
+	end
+	if matrix.is(a) and not matrix.is(b) then
+		return a:size():lambda(function(...)
+			return a[{...}] / b
+		end)
+	end
+	if not matrix.is(a) and matrix.is(b) then
+		return b:size():lambda(function(...)
+			return a / b[{...}]
+		end)
+	end
+	assert(a:size() == b:size())
+	return a:size():lambda(function(...)
+		local i = {...}
+		return a[i] / b[i]
+	end)
+end
+
 -- what is the name of this operation? it's dot for vectors.  it and itself on matrices is the Frobenius norm.  
 function matrix.dot(a,b)
 	assert(#a == #b)
