@@ -20,19 +20,25 @@ end
 
 -- static initializer
 -- matrix.zeros(dim1, ..., dimN)
+-- matrix.zeros{dim1, ..., dimN}
 function matrix.zeros(dim, ...)
 	local self = matrix()
 	local subdegree = select('#', ...)
 	local rows = {}
-	assert(type(dim) == 'number')
-	for i=1,dim do
-		if subdegree == 0 then
-			self[i] = 0
-		else
-			self[i] = matrix.zeros(...)
+	if type(dim) == 'table' then
+		assert(select('#', ...) == 0)
+		return matrix.zeros(table.unpack(dim))
+	else
+		assert(type(dim) == 'number')
+		for i=1,dim do
+			if subdegree == 0 then
+				self[i] = 0
+			else
+				self[i] = matrix.zeros(...)
+			end
 		end
+		return self
 	end
-	return self
 end
 
 -- static initializer
@@ -279,7 +285,8 @@ function matrix.__div(a,b)
 	end)
 end
 
-function matrix.mulElem(a,b)
+-- per-element multiplication
+function matrix.emul(a,b)
 	if not matrix.is(a) and not matrix.is(b) then
 		return a * b
 	end
@@ -300,7 +307,8 @@ function matrix.mulElem(a,b)
 	end)
 end
 
-function matrix.divElem(a,b)
+-- per-element division
+function matrix.ediv(a,b)
 	if not matrix.is(a) and not matrix.is(b) then
 		return a / b
 	end
@@ -321,6 +329,24 @@ function matrix.divElem(a,b)
 	end)
 end
 
+-- sums all sub-elements in the matrix
+function matrix:sum()
+	local sum = matrix(self[1])
+	for i=2,#self do
+		sum = sum + self[i]
+	end
+	return sum
+end
+
+function matrix:prod()
+	assert(type(self[1]) == 'number')
+	local prod = self[1]
+	for i=2,#self do
+		prod = prod * self[i]
+	end
+	return prod
+end
+
 -- what is the name of this operation? it's dot for vectors.  it and itself on matrices is the Frobenius norm.  
 function matrix.dot(a,b)
 	assert(#a == #b)
@@ -336,9 +362,11 @@ function matrix.dot(a,b)
 	return sum
 end
 
+function matrix:normSq() return self:dot(self) end
+
 -- Frobenius norm
 function matrix:norm()
-	return math.sqrt(self:dot(self))
+	return math.sqrt(self:normSq())
 end
 
 function matrix:normL1()
@@ -376,6 +404,12 @@ function matrix:transpose(aj,bj)
 		local si = {...}
 		si[aj], si[bj] = si[bj], si[aj]
 		return self[si]
+	end)
+end
+
+function matrix:map(f)
+	return self:size():lambda(function(...)
+		return f(self[{...}], ...)
 	end)
 end
 
