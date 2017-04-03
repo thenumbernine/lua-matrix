@@ -77,7 +77,7 @@ end
 function matrix:__tostring(n)
 	n = n or self:degree()
 	return '[' .. table(self):map(function(cell)
-		if getmetatable(cell) == matrix then
+		if matrix.is(cell) then
 			return cell:__tostring(n-1)
 		end
 		return tostring(cell)
