@@ -21,7 +21,7 @@ end
 -- static initializer
 -- matrix.zeros(dim1, ..., dimN)
 -- matrix.zeros{dim1, ..., dimN}
-function matrix.zeros(dim, ...)
+function matrix.const(value, dim, ...)
 	local self = matrix()
 	local subdegree = select('#', ...)
 	local rows = {}
@@ -32,13 +32,21 @@ function matrix.zeros(dim, ...)
 		assert(type(dim) == 'number')
 		for i=1,dim do
 			if subdegree == 0 then
-				self[i] = 0
+				self[i] = value
 			else
-				self[i] = matrix.zeros(...)
+				self[i] = matrix.const(value, ...)
 			end
 		end
 		return self
 	end
+end
+
+function matrix.zeros(...)
+	return matrix.const(0, ...)
+end
+
+function matrix.ones(...)
+	return matrix.const(1, ...)
 end
 
 -- static initializer
