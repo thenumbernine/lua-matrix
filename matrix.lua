@@ -1,3 +1,9 @@
+--[[
+this isn't really a matrix library
+more of a n-ary array of numbers library.  vector, matrix.
+not necessarily tensors, as they imply invariance to coordinate transform, which is one assumption too far for a title.
+--]]
+
 local class = require 'ext.class'
 local table = require 'ext.table'
 local _ = require 'matrix.index'
@@ -18,16 +24,17 @@ function matrix:init(t, ...)
 	end
 end
 
--- static initializer
--- matrix.zeros(dim1, ..., dimN)
--- matrix.zeros{dim1, ..., dimN}
+--[[
+static initializer
+matrix.const(value, dim1, ..., dimN)
+matrix.const(value, {dim1, ..., dimN})
+--]]
 function matrix.const(value, dim, ...)
 	local self = matrix()
 	local subdegree = select('#', ...)
 	local rows = {}
 	if type(dim) == 'table' then
-		assert(select('#', ...) == 0)
-		return matrix.zeros(table.unpack(dim))
+		return matrix.const(value, table.unpack(dim))
 	else
 		assert(type(dim) == 'number')
 		for i=1,dim do
@@ -41,6 +48,12 @@ function matrix.const(value, dim, ...)
 	end
 end
 
+--[[
+initialize an empty matrix
+matrix.zeros(dim1, ..., dimN)
+matrix.zeros{dim1, ..., dimN}
+the latter lets you use a matrix to initialize a matrix: matrix{2,2}:zeros() produces {{0,0},{0,0}}
+--]]
 function matrix.zeros(...)
 	return matrix.const(0, ...)
 end
@@ -61,6 +74,15 @@ function matrix.lambda(size, f)
 	return self
 end
 
+--[[
+should the matrix {} have size return {} or {0} ?  technically the latter implies a vector of size 0 (whereas {0,0} would be a matrix of size 0,0)
+and the matrix {} would not necessarily be a vector, let alone anything
+looks like matlab always returns two values for size
+I wonder what numpy does
+what about nested nils? {1,2,3} is of size {3}, {{1},{2},{3}} is of size {3,1}, so  {{}, {}, {}} should be of size {3,0}
+ however if {} had size {} then {{}, {}, {}} would have size of just {3}, which is ambiguous
+therefore {} should return size {0}
+--]]
 function matrix:size(sizes, offset)
 	offset = offset or 1
 	sizes = sizes or matrix{}
@@ -69,7 +91,7 @@ function matrix:size(sizes, offset)
 		for i=2,#self do
 			assert(type(self[i]) == 'number', "matrix had a bad dimension")
 		end
-	else
+	elseif self[1] ~= nil then
 		for i=2,#self do
 			assert(#self[1] == #self[i], "matrix had a bad dimension")
 		end
@@ -96,6 +118,29 @@ function matrix.__concat(a,b)
 	return tostring(a) .. tostring(b)
 end
 
+--[[
+used for matrix slicing
+see test.lua for examples
+
+if m = {{1,2,3},
+		{4,5,6},
+		{7,8,9}}
+
+then m({1,3},{1,3}) gives
+	{{1,3},
+	 {7,9}}
+
+and m({1,2}, {1,2}) gives
+	{{1,2},
+	 {4,5}}
+
+notice that the _ operator acts as a shorthand for contiguous regions
+so m(_(1,3),{1}) gives {{1},{4},{7}}
+
+also nesting or something
+so m(_(1,3),1) gives {1,4,7}
+
+--]]
 function matrix:__call(i, ...)
 	if i == _ then i = _(#self) end
 	if type(i) == 'table' then
@@ -289,7 +334,7 @@ function matrix.__div(a,b)
 	assert(matrix.is(a))
 	assert(type(b) == 'number')
 	return matrix.lambda(a:size(), function(...)
-		return a[{...}] / b
+		return a(...) / b
 	end)
 end
 
@@ -300,18 +345,17 @@ function matrix.emul(a,b)
 	end
 	if matrix.is(a) and not matrix.is(b) then
 		return a:size():lambda(function(...)
-			return a[{...}] * b
+			return a(...) * b
 		end)
 	end
 	if not matrix.is(a) and matrix.is(b) then
 		return b:size():lambda(function(...)
-			return a * b[{...}]
+			return a * b(...)
 		end)
 	end
 	assert(a:size() == b:size())
 	return a:size():lambda(function(...)
-		local i = {...}
-		return a[i] * b[i]
+		return a(...) * b(...)
 	end)
 end
 
@@ -322,18 +366,17 @@ function matrix.ediv(a,b)
 	end
 	if matrix.is(a) and not matrix.is(b) then
 		return a:size():lambda(function(...)
-			return a[{...}] / b
+			return a(...) / b
 		end)
 	end
 	if not matrix.is(a) and matrix.is(b) then
 		return b:size():lambda(function(...)
-			return a / b[{...}]
+			return a / b(...)
 		end)
 	end
 	assert(a:size() == b:size())
 	return a:size():lambda(function(...)
-		local i = {...}
-		return a[i] / b[i]
+		return a(...) / b(...)
 	end)
 end
 
@@ -417,8 +460,13 @@ end
 
 function matrix:map(f)
 	return self:size():lambda(function(...)
-		return f(self[{...}], ...)
+		return f(self(...), ...)
 	end)
 end
+
+-- for convenience
+-- should I made this table.unpack, or should I flatten all subtables as well?
+-- should I make a reshape() function?
+matrix.unpack = table.unpack
 
 return matrix
