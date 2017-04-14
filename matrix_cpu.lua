@@ -76,7 +76,7 @@ function matrix_cpu.const(value, dim, ...)
 end
 
 -- matches matrix_lua except the matrix ref
-function matrix_cpu.zeros = matrix_lua.zeros
+function matrix_cpu.zeros(...)
 	return matrix_cpu.const(0, ...)
 end
 
