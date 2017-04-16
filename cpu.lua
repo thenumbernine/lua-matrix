@@ -1,5 +1,7 @@
 -- my attempt at a ffi implementation of the matrix class
-
+-- take note, this relies on luajit
+-- and luajit doesn't overload __len
+local ffi = require 'ffi'
 local class = require 'ext.class'
 
 -- here's my original pure-Lua version
@@ -31,30 +33,36 @@ function matrix_cpu:init(src, ctype, size)
 		src = matrix_lua(src)
 	end
 
+	-- the size member can't be a matrix_cpu or we'll get infinite recursion ...
 	if matrix_cpu.is(src) then
-		self.size_ = src:size()
+		self.size_ = matrix_lua{src:size():unpack()}
 	elseif matrix_lua.is(src) then
-		self.size_ = matrix_cpu(src:size())
+		self.size_ = src:size()
 	elseif size then
-		self.size_ = matrix_cpu(size)
+		if matrix_cpu.is(size) then
+			self.size_ = matrix_lua{size:unpack()}
+		else
+			self.size_ = matrix_lua(size)
+		end
 	else
 		assert(src == nil)
-		self.size_ = matrix_cpu{0}
+		self.size_ = matrix_lua{0}
 	end
 	
-	self.volume = self.size_:prod()
+	self.length = self.size_:prod()
 
-	self.step = self.size_:size():zeros()
+	self.step = matrix_lua(self.size_)
+	self.step[1] = 1
 	for i=2,#self.size_ do
 		self.step[i] = self.step[i-1] * self.size_[i]
 	end
 
-	self.ctype = ctype or self.real or self.env.real
+	self.ctype = ctype or self.real or 'double'
 
-	self.ptr = ffi.new(self.ctype..'[?]', math.max(self.volume,1))
+	self.ptr = ffi.new(self.ctype..'[?]', math.max(self.length,1))
 
 	if matrix_cpu.is(src) then
-		ffi.copy(self.ptr, src.ptr, ffi.sizeof(self.ctype) * self.volume)
+		ffi.copy(self.ptr, src.ptr, ffi.sizeof(self.ctype) * self.length)
 	elseif src ~= nil then
 		for i in src:iter() do
 			self[i] = src[i]
@@ -65,14 +73,14 @@ end
 -- sorry, for my matrix lib compat,
 -- you gotta set ctypes with matrix_cpu.real = whatever ctype
 function matrix_cpu.const(value, dim, ...)
-	local m = matrix_cpu(nil, nil,
+	local self = matrix_cpu(nil, nil,
 		type(dim) == 'table'
 		and matrix_cpu(dim)
 		or matrix_cpu{dim, ...})
-	for i=0,self.volume-1 do
+	for i=0,self.length-1 do
 		self.ptr[i] = value
 	end
-	return m
+	return self
 end
 
 -- matches matrix_lua except the matrix ref
@@ -97,22 +105,24 @@ function matrix_cpu.lambda(size, f)
 end
 
 -- returns the matrix size
+-- size_ is stored as a matrix_lua, but :size() will return a matrix_cpu
 function matrix_cpu:size()
 	return matrix_cpu(self.size_)
 end
 
 function matrix_cpu:degree()
-	return self.size_.volume
+	return #self.size_
 end
 
 function matrix_cpu:toLuaMatrix()
+assert(not matrix_cpu.is(self.size_))
 	return matrix_lua.lambda({self.size_:unpack()}, function(...)
 		return self(...)
 	end)
 end
 
 function matrix_cpu:__tostring(n)
-	return m:toLuaMatrix():__tostring(n)
+	return self:toLuaMatrix():__tostring(n)
 end
 
 -- matches matrix_lua 
@@ -137,31 +147,114 @@ end
 
 -- matches matrix_lua except the matrix ref
 function matrix_cpu:__index(i)
-	if type(i) ~= 'table' then return rawget(self,i) or rawget(matrix_cpu,i) end
+	if type(i) == 'number' then 
+		return self.ptr[i-1] 
+	end
+	if type(i) ~= 'table' then return 
+		rawget(self,i) or rawget(matrix_cpu,i) 
+	end
 	return self(table.unpack(i))
+end
+
+function matrix_cpu:getindex(i)
+	local index = 0
+	for j=1,#i do
+		if not (i[j] >= 1 and i[j] <= self.size_[j]) then
+			error("got out of bounds index: "..i)
+		end
+		index = index + (i[j] - 1) * self.step[j]
+	end
+	return index
 end
 
 -- same as __call
 function matrix_cpu:__newindex(i,v)
-	if type(i) == 'table' then error 'TODO' end
-	rawset(self,i,v)
+	if type(i) == 'table' then
+		if matrix_cpu.is(i) then i = i:toLuaMatrix() end
+	elseif type(i) == 'number' then
+		i = {i}
+	else
+		rawset(self,i,v)
+		return
+	end
+
+	if type(v) == 'table' then
+		if not matrix_cpu.is(v) then v = matrix_cpu(v) end
+		for j in v:iter() do
+			local t = {}
+			for k=1,#i do t[k] = i[k] end
+			for k=1,j.length do t[k+#i] = j[k] end
+			self.ptr[self:getindex(t)] = v[j]
+		end
+	elseif type(v) == 'number' then
+		self.ptr[self:getindex(i)] = v
+	else
+		error("can only assign numbers")
+	end
 end
+
+function matrix_cpu.__unm(a)
+	local c = matrix_cpu(a)
+	for i=0,c.length-1 do
+		c.ptr[i] = -c.ptr[i]
+	end
+	return c
+end
+
+function matrix_cpu.__add(a,b)
+	local c = matrix_cpu(a)
+	if type(b) == 'number' then
+		for i=0,c.length-1 do
+			c.ptr[i] = c.ptr[i] + b
+		end
+	elseif matrix_cpu.is(b) then
+		assert(c.size_ == b.size_)
+		for i=0,c.length-1 do
+			c.ptr[i] = c.ptr[i] + b.ptr[i]
+		end
+	else
+		for i=1,c.length do
+			c.ptr[i-1] = c.ptr[i-1] + b[i]
+		end
+	end
+	return c
+end
+
+function matrix_cpu.__sub(a,b)
+	local c = matrix_cpu(a)
+	if type(b) == 'number' then
+		for i=0,c.length-1 do
+			c.ptr[i] = c.ptr[i] - b
+		end
+	elseif matrix_cpu.is(b) then
+		assert(c.size_ == b.size_)
+		for i=1,c.length do
+			c.ptr[i-1] = c.ptr[i-1] - b.ptr[i-1]
+		end
+	else
+		for i=1,c.length do
+			c.ptr[i-1] = c.ptr[i-1] - b[i]
+		end
+	end
+	return c
+end
+
 
 -- matches matrix_lua except the matrix ref
 function matrix_cpu:iter()
 	return coroutine.wrap(function()
 		local size = self:size()
-		local i = matrix_cpu.zeros(#size)
-		for j=1,#size do
+		local i = matrix_cpu.zeros(size.length)
+		for j=1,size.length do
 			i[j] = 1
 		end
 		repeat
 			coroutine.yield(matrix_cpu(i))
-			for j=1,#i do
+			for j=1,i.length do
 				i[j] = i[j] + 1
 				if i[j] <= size[j] then break end
 				i[j] = 1
-				if j == #i then
+				if j == i.length then
 					return
 				end
 			end
@@ -290,7 +383,7 @@ end
 -- instead this sums all elements
 function matrix_cpu:sum()
 	local sum = self.ptr[0]
-	for i=1,self.volume-1 do
+	for i=1,self.length-1 do
 		sum = sum + self.ptr[i]
 	end
 	return sum
@@ -299,7 +392,7 @@ end
 -- same as :sum()
 function matrix_cpu:prod()
 	local prod = self.ptr[0]
-	for i=1,self.volume-1 do
+	for i=1,self.length-1 do
 		prod = prod * self.ptr[i]
 	end
 	return prod
@@ -308,7 +401,7 @@ end
 function matrix_cpu.dot(a,b)
 	assert(a.size == b.size)
 	local sum = 0
-	for i=0,a.volume-1 do
+	for i=0,a.length-1 do
 		sum = sum + a.ptr[i] * b.ptr[i]
 	end
 	return sum
@@ -319,7 +412,7 @@ function matrix_cpu:norm() return math.sqrt(self:normSq()) end
 
 function matrix_cpu:normL1()
 	local l = 0
-	for i=0,self.volume-1 do
+	for i=0,self.length-1 do
 		l = l + math.abs(self.ptr[i])
 	end
 	return l
@@ -327,7 +420,7 @@ end
 
 function matrix_cpu:normLInf()
 	local l = 0
-	for i=0,self.volume-1 do
+	for i=0,self.length-1 do
 		l = math.max(l, math.abs(self.ptr[i]))
 	end
 	return l
@@ -335,11 +428,9 @@ end
 
 function matrix_cpu.__eq(a,b)
 	if type(a) ~= type(b) then return false end
-	if a.size_.volume ~= b.size_.volume then return false end
-	for j=0,a.size_.volume-1 do
-		if a.size_.ptr[j] ~= b.size_.ptr[j] then return false end
-	end
-	for i=0,a.volume-1 do
+	if a.size_.length ~= b.size_.length then return false end
+	if a.size_ ~= b.size_ then return false end
+	for i=0,a.length-1 do
 		if a.ptr[i] ~= b.ptr[i] then return false end
 	end
 	return true
@@ -349,6 +440,14 @@ function matrix_cpu:map(f)
 	return self:size():lambda(function(...)
 		return f(self(...), ...)
 	end)
+end
+
+function matrix_cpu:unpack()
+	local t = {}
+	for i=0,self.length-1 do
+		t[i+1] = self.ptr[i]
+	end
+	return table.unpack(t)
 end
 
 return matrix_cpu
