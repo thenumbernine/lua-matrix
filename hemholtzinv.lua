@@ -1,9 +1,9 @@
 -- for an n-dimensional scalar matrix
 -- adds an extra dimension of the gradient of the function
 -- extra dimension size is scalar matrix's degree
-local curl = require 'curl'
-local grad = require 'grad'
-local lapinv = require 'lapinv'
+local curl = require 'matrix.curl'
+local grad = require 'matrix.grad'
+local lapinv = require 'matrix.lapinv'
 local matrix = require 'matrix'
 local table = require 'ext.table'
 
