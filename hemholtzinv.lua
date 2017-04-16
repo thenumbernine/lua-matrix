@@ -29,8 +29,9 @@ div B = D <=> div (curl A + grad phi) = D <=> div grad phi = lap phi = D
 B = curl A + grad phi = grad lap^-1 D - curl veclap^-1 R
 --]]
 return function(args)
-	local D = assert(args.div)
-	local R = assert(args.curl)
+	local D = args.div
+	local R = args.curl
+	assert(D or R, "you need to specify at least the div or the curl")
 	local dx = assert(args.dx)
 
 	local size
@@ -69,7 +70,6 @@ return function(args)
 		A = matrix{size[1],size[2],size[3],3}:lambda(function(...)
 			local i = table{...}
 			i:insert(1, i:remove())
-			print('A['..i..'] = '..A[i])
 			return A[i]
 		end)
 
