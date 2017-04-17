@@ -34,7 +34,6 @@ return function(args)
 	local dx = assert(args.dx)
 
 	local matrix = getmetatable(D or R)
-
 	local size
 	if D then
 		size = D:size()
@@ -65,9 +64,8 @@ return function(args)
 		-- A = -veclap^-1 R 
 		local A = matrix{3,size:unpack()}:zeros()
 		for i=1,3 do
-			local Ri = R[i]
 			A[i] = -lapinv(table(args, {
-				lap = Ri,
+				lap = R[i],
 				dx = dx,
 			}))
 		end
@@ -78,11 +76,10 @@ return function(args)
 			i:insert(1, i:remove())
 			return A[i]
 		end)
-
 		local curlA = curl(A,dx)
 		result = curlA
 	end	
-	if phi then
+	if D then
 		local phi = D and lapinv(table(args, {lap=D, dx=dx})) or nil
 		local gradPhi = grad(phi, dx)
 		result = result and result + gradPhi or gradPhi

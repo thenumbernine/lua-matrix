@@ -1,14 +1,15 @@
-local matrix = require 'matrix'
 return function(A,dx)
-	local size = A:size()
+	local matrix = getmetatable(A)
 	assert(A:degree() == 4)
-	assert(size[4] == 3)
+	local size = A:size()
+	local sx,sy,sz,sv = size:unpack()
+	assert(sv == 3)
 	assert(dx:degree() == 1)
-	assert(dx:size()[1] >= 3)
+	assert(dx:len() >= 3)
 	return size:lambda(function(x,y,z,i)
-		if x==1 or x==size[1]
-		or y==1 or y==size[2]
-		or z==1 or z==size[3]
+		if x==1 or x==sx
+		or y==1 or y==sy
+		or z==1 or z==sz
 		then 
 			return 0
 		end

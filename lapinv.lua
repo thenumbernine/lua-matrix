@@ -4,7 +4,7 @@ return function(args)
 	local dx = assert(args.dx)
 	local matrix = getmetatable(lap)
 	local size = lap:size()
-	local n = #size
+	local n = size:len()
 	args.x = args.x or -lap
 	args.b = args.b or lap
 	args.A = args.A or function(y)
@@ -20,7 +20,7 @@ return function(args)
 				sum = sum + dx[j] * dx[j] * (y[ip] - 2*y[i] + y[im])
 			end
 			return sum
-		end)	
+		end)
 	end
 	args.clone = args.clone or matrix
 	args.dot = args.dot or matrix.dot
