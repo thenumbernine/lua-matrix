@@ -100,6 +100,11 @@ function matrix:size(sizes, offset)
 	return sizes
 end
 
+-- for matrix_ffi compat, since luajit is still 5.1 compat and doesn't have a __len overload operator
+function matrix:len()
+	return #self
+end
+
 function matrix:degree()
 	return #self:size()
 end

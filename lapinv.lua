@@ -1,8 +1,8 @@
 local gmres = require 'solver.gmres'
-local matrix = require 'matrix'
 return function(args)
 	local lap = assert(args.lap)
 	local dx = assert(args.dx)
+	local matrix = getmetatable(lap)
 	local size = lap:size()
 	local n = #size
 	args.x = args.x or -lap

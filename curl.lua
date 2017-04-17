@@ -1,23 +1,24 @@
 local matrix = require 'matrix'
 return function(A,dx)
-	local dx,dy,dz = dx:unpack()
 	local size = A:size()
-	assert(#size == 4)
-	assert(table.remove(size) == 3)
-	return size:lambda(function(i,j,k)
-		if i==1 or i==size[1]
-		or j==1 or j==size[2]
-		or k==1 or k==size[3]
+	assert(A:degree() == 4)
+	assert(size[4] == 3)
+	assert(dx:degree() == 1)
+	assert(dx:size()[1] >= 3)
+	return size:lambda(function(x,y,z,i)
+		if x==1 or x==size[1]
+		or y==1 or y==size[2]
+		or z==1 or z==size[3]
 		then 
-			return matrix{0,0,0}
+			return 0
 		end
-		return matrix{
-			.5 * (dy * (A[i][j+1][k][3] - A[i][j-1][k][3])
-				- dz * (A[i][j][k+1][2] - A[i][j][k-1][2])),
-			.5 * (dz * (A[i][j][k+1][1] - A[i][j][k-1][1])
-				- dx * (A[i+1][j][k][3] - A[i-1][j][k][3])),
-			.5 * (dx * (A[i+1][j][k][2] - A[i-1][j][k][2])
-				- dy * (A[i][j+1][k][1] - A[i][j-1][k][1])),
-		}
+		local j = i%3+1
+		local k = j%3+1
+		local jp = matrix{x,y,z} jp[j]=jp[j]+1
+		local jm = matrix{x,y,z} jm[j]=jm[j]-1
+		local kp = matrix{x,y,z} kp[k]=kp[k]+1
+		local km = matrix{x,y,z} km[k]=km[k]-1
+		return .5 * (dx[j] * (A(jp[1],jp[2],jp[3],k) - A(jm[1],jm[2],jm[3],k))
+					- dx[k] * (A(kp[1],kp[2],kp[3],j) - A(km[1],km[2],km[3],j)))
 	end)
 end

@@ -4,7 +4,6 @@
 local curl = require 'matrix.curl'
 local grad = require 'matrix.grad'
 local lapinv = require 'matrix.lapinv'
-local matrix = require 'matrix'
 local table = require 'ext.table'
 
 --[[
@@ -33,38 +32,45 @@ return function(args)
 	local R = args.curl
 	assert(D or R, "you need to specify at least the div or the curl")
 	local dx = assert(args.dx)
-	
+
+	local matrix = getmetatable(D or R)
+
 	local size
 	if D then
 		size = D:size()
 	end
 	if R then
-		local size2 = R:size()
-		assert(size2[#size2] == 3)
-		size2[#size2] = nil
+		local Rsize = R:size()
+		local Rdeg = R:degree()
+		assert(Rsize[Rdeg] == 3)
+		Rsize = matrix{Rdeg-1}:lambda(function(i) return Rsize[i] end)
 		if size then
-			assert(size == size2)
+			assert(size == Rsize)
 		else
-			size = size2
+			size = Rsize
 		end
 	end
-	
 	-- needs to be 3D for div or curl to work
-	assert(#size == 3)
+	assert(size:len() == 3)
 	
 	local result
 	if R then
 		-- rearrange R's so the vector indexes are first
-		R = matrix{3,size[1],size[2],size[3]}:lambda(function(...)
+		R = matrix{3,size:unpack()}:lambda(function(...)
 			local i = table{...}
 			i:insert(i:remove(1))
 			return R[i]
 		end)
-		
+	
 		-- A = -veclap^-1 R 
-		local A = matrix{3}:lambda(function(i)
-			return -lapinv(table(args, {lap=R[i], dx=dx}))
-		end)
+		local A = matrix{3,size:unpack()}:zeros()
+		for i=1,3 do
+			local Ri = R[i]
+			A[i] = -lapinv(table(args, {
+				lap = Ri,
+				dx = dx,
+			}))
+		end
 
 		-- reshape back
 		A = matrix{size[1],size[2],size[3],3}:lambda(function(...)
