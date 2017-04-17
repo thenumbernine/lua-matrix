@@ -33,7 +33,7 @@ return function(args)
 	local R = args.curl
 	assert(D or R, "you need to specify at least the div or the curl")
 	local dx = assert(args.dx)
-
+	
 	local size
 	if D then
 		size = D:size()
@@ -48,10 +48,10 @@ return function(args)
 			size = size2
 		end
 	end
-
+	
 	-- needs to be 3D for div or curl to work
 	assert(#size == 3)
-
+	
 	local result
 	if R then
 		-- rearrange R's so the vector indexes are first
