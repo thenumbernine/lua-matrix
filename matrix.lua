@@ -222,18 +222,17 @@ function matrix.__sub(a,b)
 	return c
 end
 
-function matrix:iter()
+function matrix:range()
 	return coroutine.wrap(function()
-		local size = self:size()
-		local i = matrix.zeros(#size)
-		for j=1,#size do
+		local i = matrix.zeros(#self)
+		for j=1,#self do
 			i[j] = 1
 		end
 		repeat
 			coroutine.yield(matrix(i))
 			for j=1,#i do
 				i[j] = i[j] + 1
-				if i[j] <= size[j] then break end
+				if i[j] <= self[j] then break end
 				i[j] = 1
 				if j == #i then
 					return
@@ -241,6 +240,10 @@ function matrix:iter()
 			end
 		until nil 
 	end)
+end
+
+function matrix:iter() 
+	return self:size():range() 
 end
 
 function matrix.scale(a,s)
