@@ -3,6 +3,7 @@
 -- and luajit doesn't overload __len
 local ffi = require 'ffi'
 local class = require 'ext.class'
+local table = require 'ext.table'
 
 -- here's my original pure-Lua version
 local matrix_lua = require 'matrix'
