@@ -390,7 +390,7 @@ end
 
 -- sums all sub-elements in the matrix
 function matrix:sum()
-	local sum = matrix(self[1])
+	local sum = matrix.is(self[1]) and matrix(self[1]) or self[1]
 	for i=2,#self do
 		sum = sum + self[i]
 	end
