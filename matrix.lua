@@ -466,6 +466,10 @@ function matrix:transpose(aj,bj)
 	end)
 end
 
+function matrix:T(...)
+	return self:transpose(...)
+end
+
 function matrix:map(f)
 	return self:size():lambda(function(...)
 		return f(self(...), ...)
