@@ -388,6 +388,27 @@ function matrix.ediv(a,b)
 	end)
 end
 
+-- per-element exponent 
+function matrix.epow(a,b)
+	if not matrix.is(a) and not matrix.is(b) then
+		return a ^ b
+	end
+	if matrix.is(a) and not matrix.is(b) then
+		return a:size():lambda(function(...)
+			return a(...) ^ b
+		end)
+	end
+	if not matrix.is(a) and matrix.is(b) then
+		return b:size():lambda(function(...)
+			return a ^ b(...)
+		end)
+	end
+	assert(a:size() == b:size())
+	return a:size():lambda(function(...)
+		return a(...) ^ b(...)
+	end)
+end
+
 -- sums all sub-elements in the matrix
 function matrix:sum()
 	local sum = matrix.is(self[1]) and matrix(self[1]) or self[1]
