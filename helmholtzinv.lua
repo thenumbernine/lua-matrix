@@ -7,7 +7,7 @@ local lapinv = require 'matrix.lapinv'
 local table = require 'ext.table'
 
 --[[
--- functions for finding the inverse Hemholtz decomposition 
+-- functions for finding the inverse Helmholtz decomposition 
 -- finds the inverse of a curl
 -- given a grid of [i1...in, j] for dim(j) = 3
 -- returns the like-dimensioned inverse of the curl
@@ -16,7 +16,7 @@ local table = require 'ext.table'
 https://groups.google.com/forum/#!topic/comp.soft-sys.matlab/jv_2gsSF-pE
 curl B = R
 div B = D
-(A,phi) = Hemholtz decomposition of B
+(A,phi) = Helmholtz decomposition of B
 B = curl A + grad phi
 first the curl ...
 div A = 0 <= gauge
