@@ -74,6 +74,15 @@ function matrix.lambda(size, f)
 	return self
 end
 
+function matrix.eye(size)
+	if #size == 0 then return 1 end
+	if #size == 1 then size[2] = size[1] end
+	return matrix.lambda(size, function(i,j,...)
+		if #size == 0 or #size == 1 then return 1 end
+		return i==j and 1 or 0
+	end)
+end
+
 --[[
 should the matrix {} have size return {} or {0} ?  technically the latter implies a vector of size 0 (whereas {0,0} would be a matrix of size 0,0)
 and the matrix {} would not necessarily be a vector, let alone anything
