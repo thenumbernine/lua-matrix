@@ -436,6 +436,30 @@ function matrix:prod()
 	return prod
 end
 
+function matrix:min()
+	local x = matrix.is(self[1]) and self[1]:min() or self[1]
+	for i=2,#self do
+		if type(self[i]) == 'number' then
+			x = math.min(x, self[i])
+		else
+			x = math.min(x, self[i]:min())
+		end
+	end
+	return x
+end
+
+function matrix:max()
+	local x = matrix.is(self[1]) and self[1]:max() or self[1]
+	for i=2,#self do
+		if type(self[i]) == 'number' then
+			x = math.max(x, self[i])
+		else
+			x = math.max(x, self[i]:max())
+		end
+	end
+	return x
+end
+
 -- what is the name of this operation? it's dot for vectors.  it and itself on matrices is the Frobenius norm.  
 function matrix.dot(a,b)
 	assert(#a == #b)
