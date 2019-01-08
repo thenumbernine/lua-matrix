@@ -32,7 +32,6 @@ matrix.const(value, {dim1, ..., dimN})
 function matrix.const(value, dim, ...)
 	local self = matrix()
 	local subdegree = select('#', ...)
-	local rows = {}
 	if type(dim) == 'table' then
 		return matrix.const(value, table.unpack(dim))
 	else
@@ -534,5 +533,8 @@ end
 -- should I made this table.unpack, or should I flatten all subtables as well?
 -- should I make a reshape() function?
 matrix.unpack = table.unpack
+
+matrix.determinant = require 'matrix.determinant'
+matrix.det = matrix.determinant
 
 return matrix
