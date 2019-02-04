@@ -95,9 +95,9 @@ function matrix:size(sizes, offset)
 	offset = offset or 1
 	sizes = sizes or matrix{}
 	sizes[offset] = #self
-	if type(self[1]) == 'number' then
+	if type(self[1]) == 'number' or type(self[1]) == 'string' then
 		for i=2,#self do
-			assert(type(self[i]) == 'number', "matrix had a bad dimension")
+			assert(type(self[i]) == 'number' or type(self[i]) == 'string', "matrix had a bad dimension")
 		end
 	elseif self[1] ~= nil then
 		for i=2,#self do
