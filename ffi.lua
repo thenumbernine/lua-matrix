@@ -16,7 +16,7 @@ matrix_ffi.real = nil
 --[[
 	constructors:
 	matrix_ffi() = nil matrix_ffi {}
-	matrix_ffi(t, env, ctype), 
+	matrix_ffi(t, ctype, size, env), 
 		t can be
 		- a (arbitrarily nested) table 
 		- another matrix_ffi object
@@ -98,16 +98,16 @@ function matrix_ffi.ones(...)
 end
 
 -- could match matrix_lua except the matrix ref, if I copied it back over, but it might be slightly slower?
-function matrix_ffi.lambda(size, f)
+function matrix_ffi.lambda(size, f, result)
 	local size = matrix_ffi.is(size) 
 		and size or matrix_ffi(size)
 	if size:degree() == 0 then return f() end
-	local self = size:zeros()
-	for i in self:iter() do
+	if not result then result = size:zeros() end
+	for i in result:iter() do
 		local x = assert(f(i:unpack()))  
-		self[i] = x
+		result[i] = x
 	end
-	return self
+	return result
 end
 
 -- returns the matrix size
@@ -333,7 +333,7 @@ function matrix_ffi.scale(a,s)
 end
 
 -- could match matrix_lua except matrix ref if I copied it back
-function matrix_ffi.inner(a,b,metric,aj,bj)
+function matrix_ffi.inner(a,b,metric,aj,bj, c)
 	if type(a) == 'number' then
 		if type(b) == 'number' then return a * b end
 		return b:scale(a)
@@ -349,7 +349,18 @@ function matrix_ffi.inner(a,b,metric,aj,bj)
 	local ssb = table(sb)
 	local sbj = ssb:remove(bj)
 	assert(saj == sbj, "inner dimensions must be equal")
+	
 	local sc = table(ssa):append(ssb)
+
+	if c then
+		assert(#c.size_ == #sc)
+		for i=1,#sc do
+			assert(c.size_[i] == sc[i])
+		end
+	else
+		c = matrix(nil, a.ctype, sc)
+	end
+
 	return matrix_ffi.lambda(sc, function(...)
 		local i = {...}
 		local ia = table{table.unpack(i,1,#sa-1)}
@@ -381,11 +392,18 @@ function matrix_ffi.inner(a,b,metric,aj,bj)
 			end
 		end
 		return sum
-	end)
+	end, c)
 end
 
 -- matches matrix_lua
 matrix_ffi.__mul = matrix_ffi.inner
+
+-- this is here to put the result arg first
+-- I want to put it first in all cases
+-- but this would break compat with matrix_lua, and with the * operator
+function matrix_ffi.mul(c, a,b,metric,aj,bj)
+	return matrix_ffi.__mul(a,b,metric,aj,bj, c)
+end
 
 -- matches matrix_lua except matrix ref 
 function matrix_ffi.__div(a,b)
