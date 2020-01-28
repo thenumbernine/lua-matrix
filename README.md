@@ -11,13 +11,17 @@
 matrix initialization:
 
 `m = matrix{1,2,3}`
+
 `m = matrix{{1,2},{3,4}}`
+
 `m = matrix(n)`
+
 etc
 
 `m = matrix.const(math.pi, 2, 3)`
+
 `m = matrix.const(math.pi, {2,2})`
 
 gives you a 2x2 matrix filled with the value for pi.
 
-
+(TODO finish this)
