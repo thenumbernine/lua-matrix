@@ -95,10 +95,17 @@ function matrix:size(sizes, offset)
 	offset = offset or 1
 	sizes = sizes or matrix{}
 	sizes[offset] = #self
-	if type(self[1]) == 'number' or type(self[1]) == 'string' then
+	local typeSelf1 = type(self[1])
+	if typeSelf1 == 'number' or typeSelf1 == 'string' or typeSelf1 == 'cdata' then
 		for i=2,#self do
-			assert(type(self[i]) == 'number' or type(self[i]) == 'string', "matrix had a bad dimension")
+			local typeSelfI = type(self[i])
+			assert(typeSelfI == 'number' or typeSelfI == 'string' or typeSelfI == 'cdata', "matrix had a bad dimension")
 		end
+	-- else if self[1] is something that can be indexed
+	-- TODO what if it is cdata?  or a table?  
+	-- it could either be something indended as a value or something intended as iteration 
+	-- how to determine which is which?
+	-- the most flexible way might be to make this test matrix.is(self[1]) ...
 	elseif self[1] ~= nil then
 		for i=2,#self do
 			assert(#self[1] == #self[i], "matrix had a bad dimension")
@@ -319,8 +326,8 @@ function matrix.inner(a,b,metric,aj,bj)
 					ib[bj] = v
 					local ai = a[ia]
 					local bi = b[ib]
-					assert(type(ai) == 'number')
-					assert(type(bi) == 'number')
+					--assert(type(ai) == 'number')
+					--assert(type(bi) == 'number')
 					sum = sum + metric[u][v] * ai * bi
 				end
 			end
@@ -330,8 +337,8 @@ function matrix.inner(a,b,metric,aj,bj)
 				ib[bj] = u
 				local ai = a[ia]
 				local bi = b[ib]
-				assert(type(ai) == 'number')
-				assert(type(bi) == 'number')
+				--assert(type(ai) == 'number')
+				--assert(type(bi) == 'number')
 				sum = sum + ai * bi
 			end
 		end
