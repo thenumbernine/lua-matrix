@@ -195,9 +195,9 @@ function matrix:__newindex(i,v)
 		else
 			for j,k in ipairs(ii) do
 				if #i > 1 then
-					self[k][{table.unpack(i,2)}] = type(v) == 'number' and v or v[k]
+					self[k][{table.unpack(i,2)}] = type(v) == 'number' and v or v[j]
 				else
-					self[k] = type(v) == 'number' and v or v[k]
+					self[k] = type(v) == 'number' and v or v[j]
 				end
 			end
 		end
