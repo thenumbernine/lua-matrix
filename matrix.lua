@@ -544,4 +544,74 @@ matrix.unpack = table.unpack
 matrix.determinant = require 'matrix.determinant'
 matrix.det = matrix.determinant
 
+
+-- these are vector-math specific:
+
+--[[
+levi-civita permutation matrix
+pass a number n to make the tensor of size  {n,n,.. n} (n-times)
+otherwise pass an array for arbitrary size
+--]]
+function matrix.levciv(...)
+	local args = ...
+	if type(args) == 'number' then
+		if select('#', ...) > 1 then
+			error("got some unexpected arguments")
+		end
+		args = table.rep({args}, args)
+	end
+	return matrix(args):lambda(function(...)
+		local indexes = {...}
+		-- duplicates mean 0
+		for i=1,#indexes-1 do
+			for j=i+1,#indexes do
+				if indexes[i] == indexes[j] then return 0 end
+			end
+		end
+		-- bubble sort, count the flips
+		local parity = 1
+		for i=1,#indexes-1 do
+			for j=1,#indexes-i do
+				if indexes[j] > indexes[j+1] then
+					indexes[j], indexes[j+1] = indexes[j+1], indexes[j]
+					parity = -parity
+				end
+			end
+		end
+		return parity
+	end)
+end
+
+function matrix.cross(a, b)
+	local na = #a
+	local nb = #b
+	-- [[ the fast way, for R3 x R3 cross 
+	if na == 3 and nb == 3 then
+		return matrix{
+			a[2] * b[3] - a[3] * b[2],
+			a[3] * b[1] - a[1] * b[3],
+			a[1] * b[2] - a[2] * b[1],
+		}
+	end
+	--]]
+	-- [[ the slow way, for any dimension.  
+	-- notice there's a free parameter of the result dimension, I just picked the max
+	return b * matrix.levciv{nb, math.max(na, nb), na} * a
+	--]]
+end
+
+function matrix.rotate(theta, nx, ny, nz)
+	local I = matrix.eye{3}
+	local K = matrix{{0, -nz, ny}, {nz, 0, -nx}, {-ny, nx, 0}}
+	--local K = -matrix{nx, ny, nz} * matrix.levciv(3)
+	local K2 = K * K 
+	return I
+		+ K * math.sin(theta)
+		+ K2 * (1 - math.cos(theta))
+end
+
+function matrix.unit(m)
+	return m / m:norm()
+end
+
 return matrix
