@@ -358,7 +358,7 @@ function matrix_ffi.inner(a,b,metric,aj,bj, c)
 			assert(c.size_[i] == sc[i])
 		end
 	else
-		c = matrix_lua(nil, a.ctype, sc)
+		c = matrix_ffi(nil, a.ctype, sc)
 	end
 
 	return matrix_ffi.lambda(sc, function(...)
