@@ -105,7 +105,7 @@ function matrix:size(sizes, offset)
 	-- TODO what if it is cdata?  or a table?  
 	-- it could either be something indended as a value or something intended as iteration 
 	-- how to determine which is which?
-	-- the most flexible way might be to make this test matrix.is(self[1]) ...
+	-- the most flexible way might be to make this test matrix:isa(self[1]) ...
 	elseif self[1] ~= nil then
 		for i=2,#self do
 			assert(#self[1] == #self[i], "matrix had a bad dimension")
@@ -127,7 +127,7 @@ end
 function matrix:__tostring(n)
 	n = n or self:degree()
 	return '[' .. table(self):map(function(cell)
-		if matrix.is(cell) then
+		if matrix:isa(cell) then
 			return cell:__tostring(n-1)
 		end
 		return tostring(cell)
@@ -354,7 +354,7 @@ matrix.__mul = matrix.inner
 
 -- scalar division
 function matrix.__div(a,b)
-	assert(matrix.is(a))
+	assert(matrix:isa(a))
 	assert(type(b) == 'number')
 	return matrix.lambda(a:size(), function(...)
 		return a(...) / b
@@ -363,15 +363,15 @@ end
 
 -- per-element multiplication
 function matrix.emul(a,b)
-	if not matrix.is(a) and not matrix.is(b) then
+	if not matrix:isa(a) and not matrix:isa(b) then
 		return a * b
 	end
-	if matrix.is(a) and not matrix.is(b) then
+	if matrix:isa(a) and not matrix:isa(b) then
 		return a:size():lambda(function(...)
 			return a(...) * b
 		end)
 	end
-	if not matrix.is(a) and matrix.is(b) then
+	if not matrix:isa(a) and matrix:isa(b) then
 		return b:size():lambda(function(...)
 			return a * b(...)
 		end)
@@ -384,15 +384,15 @@ end
 
 -- per-element division
 function matrix.ediv(a,b)
-	if not matrix.is(a) and not matrix.is(b) then
+	if not matrix:isa(a) and not matrix:isa(b) then
 		return a / b
 	end
-	if matrix.is(a) and not matrix.is(b) then
+	if matrix:isa(a) and not matrix:isa(b) then
 		return a:size():lambda(function(...)
 			return a(...) / b
 		end)
 	end
-	if not matrix.is(a) and matrix.is(b) then
+	if not matrix:isa(a) and matrix:isa(b) then
 		return b:size():lambda(function(...)
 			return a / b(...)
 		end)
@@ -405,15 +405,15 @@ end
 
 -- per-element exponent 
 function matrix.epow(a,b)
-	if not matrix.is(a) and not matrix.is(b) then
+	if not matrix:isa(a) and not matrix:isa(b) then
 		return a ^ b
 	end
-	if matrix.is(a) and not matrix.is(b) then
+	if matrix:isa(a) and not matrix:isa(b) then
 		return a:size():lambda(function(...)
 			return a(...) ^ b
 		end)
 	end
-	if not matrix.is(a) and matrix.is(b) then
+	if not matrix:isa(a) and matrix:isa(b) then
 		return b:size():lambda(function(...)
 			return a ^ b(...)
 		end)
@@ -426,7 +426,7 @@ end
 
 -- sums all sub-elements in the matrix
 function matrix:sum()
-	local sum = matrix.is(self[1]) and matrix(self[1]) or self[1]
+	local sum = matrix:isa(self[1]) and matrix(self[1]) or self[1]
 	for i=2,#self do
 		sum = sum + self[i]
 	end
@@ -443,7 +443,7 @@ function matrix:prod()
 end
 
 function matrix:min()
-	local x = matrix.is(self[1]) and self[1]:min() or self[1]
+	local x = matrix:isa(self[1]) and self[1]:min() or self[1]
 	for i=2,#self do
 		if type(self[i]) == 'number' then
 			x = math.min(x, self[i])
@@ -455,7 +455,7 @@ function matrix:min()
 end
 
 function matrix:max()
-	local x = matrix.is(self[1]) and self[1]:max() or self[1]
+	local x = matrix:isa(self[1]) and self[1]:max() or self[1]
 	for i=2,#self do
 		if type(self[i]) == 'number' then
 			x = math.max(x, self[i])
@@ -472,7 +472,7 @@ function matrix.dot(a,b)
 	local sum = 0
 	for i=1,#a do
 		local ai = a[i]
-		if matrix.is(ai) then
+		if matrix:isa(ai) then
 			sum = sum + ai:dot(b[i])
 		else
 			sum = sum + ai * b[i]

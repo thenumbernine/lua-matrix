@@ -29,7 +29,7 @@ matrix_ffi.real = nil
 --]]
 function matrix_ffi:init(src, ctype, size)
 	if type(src) == 'table' 
-	and not matrix_ffi.is(src) 
+	and not matrix_ffi:isa(src) 
 	then
 		src = matrix_lua(src)
 	end
@@ -38,12 +38,12 @@ function matrix_ffi:init(src, ctype, size)
 	-- the size member can't be a matrix_ffi or we'll get infinite recursion ...
 	-- so I could make it a regular table
 	-- but why not a matrix_lua, so we get some similar functionality?
-	if matrix_ffi.is(src) then
+	if matrix_ffi:isa(src) then
 		self.size_ = matrix_lua{src:size():unpack()}
-	elseif matrix_lua.is(src) then
+	elseif matrix_lua:isa(src) then
 		self.size_ = src:size()
 	elseif size then
-		if matrix_ffi.is(size) then
+		if matrix_ffi:isa(size) then
 			self.size_ = matrix_lua{size:unpack()}
 		else
 			self.size_ = matrix_lua(size)
@@ -65,7 +65,7 @@ function matrix_ffi:init(src, ctype, size)
 
 	self.ptr = ffi.new(self.ctype..'[?]', math.max(self.volume,1))
 
-	if matrix_ffi.is(src) then
+	if matrix_ffi:isa(src) then
 		ffi.copy(self.ptr, src.ptr, ffi.sizeof(self.ctype) * self.volume)
 	elseif src ~= nil then
 		for i in src:iter() do
@@ -99,7 +99,7 @@ end
 
 -- could match matrix_lua except the matrix ref, if I copied it back over, but it might be slightly slower?
 function matrix_ffi.lambda(size, f, result)
-	local size = matrix_ffi.is(size) 
+	local size = matrix_ffi:isa(size) 
 		and size or matrix_ffi(size)
 	if size:degree() == 0 then return f() end
 	if not result then result = size:zeros() end
@@ -187,14 +187,14 @@ function matrix_ffi:__index(i)
 	if type(i) ~= 'table' then 
 		return rawget(self,i) or rawget(matrix_ffi,i) 
 	end
-	if matrix_ffi.is(i) then
+	if matrix_ffi:isa(i) then
 		return self(i:unpack())
 	end
 	return self(table.unpack(i))
 end
 
 function matrix_ffi:getindex(i)
-	assert(matrix_lua.is(i) or matrix_ffi.is(i))
+	assert(matrix_lua:isa(i) or matrix_ffi:isa(i))
 	if self.size_:len() ~= i:len() then
 		error('tried to getindex differently-ranked vectors i',i,'and size',self.size_)
 	end
@@ -218,9 +218,9 @@ end
 function matrix_ffi:__newindex(i,v)
 	if type(i) == 'table' then
 		-- make sure i is a matrix_lua
-		if matrix_ffi.is(i) then 
+		if matrix_ffi:isa(i) then 
 			i = i:toLuaMatrix() 
-		elseif not matrix_lua.is(i) then
+		elseif not matrix_lua:isa(i) then
 			i = matrix_lua(i)
 		end
 	elseif type(i) == 'number' then
@@ -232,7 +232,7 @@ function matrix_ffi:__newindex(i,v)
 	
 	if type(v) == 'table' then
 		-- make sure v is a matrix_ffi
-		if not matrix_ffi.is(v) then 
+		if not matrix_ffi:isa(v) then 
 			v = matrix_ffi(v) 
 		end
 		for j in v:iter() do
@@ -262,7 +262,7 @@ function matrix_ffi.__add(a,b)
 		for i=0,c.volume-1 do
 			c.ptr[i] = c.ptr[i] + b
 		end
-	elseif matrix_ffi.is(b) then
+	elseif matrix_ffi:isa(b) then
 		assert(c.size_ == b.size_)
 		for i=0,c.volume-1 do
 			c.ptr[i] = c.ptr[i] + b.ptr[i]
@@ -281,7 +281,7 @@ function matrix_ffi.__sub(a,b)
 		for i=0,c.volume-1 do
 			c.ptr[i] = c.ptr[i] - b
 		end
-	elseif matrix_ffi.is(b) then
+	elseif matrix_ffi:isa(b) then
 		assert(c.size_ == b.size_)
 		for i=1,c.volume do
 			c.ptr[i-1] = c.ptr[i-1] - b.ptr[i-1]
@@ -407,7 +407,7 @@ end
 
 -- matches matrix_lua except matrix ref 
 function matrix_ffi.__div(a,b)
-	assert(matrix_ffi.is(a))
+	assert(matrix_ffi:isa(a))
 	assert(type(b) == 'number')
 	return matrix_ffi.lambda(a:size(), function(...)
 		return a(...) / b
@@ -416,15 +416,15 @@ end
 
 -- matches matrix_lua except matrix ref 
 function matrix_ffi.emul(a,b)
-	if not matrix_ffi.is(a) and not matrix_ffi.is(b) then
+	if not matrix_ffi:isa(a) and not matrix_ffi:isa(b) then
 		return a * b
 	end
-	if matrix_ffi.is(a) and not matrix_ffi.is(b) then
+	if matrix_ffi:isa(a) and not matrix_ffi:isa(b) then
 		return a:size():lambda(function(...)
 			return a(...) * b
 		end)
 	end
-	if not matrix_ffi.is(a) and matrix_ffi.is(b) then
+	if not matrix_ffi:isa(a) and matrix_ffi:isa(b) then
 		return b:size():lambda(function(...)
 			return a * b(...)
 		end)
@@ -437,15 +437,15 @@ end
 
 -- matches matrix_lua except matrix ref 
 function matrix_ffi.ediv(a,b)
-	if not matrix_ffi.is(a) and not matrix_ffi.is(b) then
+	if not matrix_ffi:isa(a) and not matrix_ffi:isa(b) then
 		return a / b
 	end
-	if matrix_ffi.is(a) and not matrix_ffi.is(b) then
+	if matrix_ffi:isa(a) and not matrix_ffi:isa(b) then
 		return a:size():lambda(function(...)
 			return a(...) / b
 		end)
 	end
-	if not matrix_ffi.is(a) and matrix_ffi.is(b) then
+	if not matrix_ffi:isa(a) and matrix_ffi:isa(b) then
 		return b:size():lambda(function(...)
 			return a / b(...)
 		end)
@@ -476,8 +476,8 @@ function matrix_ffi:prod()
 end
 
 function matrix_ffi.dot(a,b)
-	assert(matrix_ffi.is(a))
-	assert(matrix_ffi.is(b))
+	assert(matrix_ffi:isa(a))
+	assert(matrix_ffi:isa(b))
 	assert(a.size_ == b.size_)
 	local sum = 0
 	for i=0,a.volume-1 do
