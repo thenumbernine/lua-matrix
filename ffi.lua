@@ -78,24 +78,16 @@ function matrix_ffi:init(src, ctype, size)
 		if src.type == self.ctype then
 			ffi.copy(self.ptr, src.ptr, ffi.sizeof(self.ctype) * self.volume)
 		else
-			--for i in self:iter() do
-				-- segfaulting:
-				--self[i] = ffi.new(self.ctype)
-				-- segfaulting:
-				--self.ptr[self:getindex(i)] = ffi.new(self.ctype)
-			--end
 			local mn = math.min(self.volume, src.volume)
 			for i=0,mn-1 do
 				self.ptr[i] = src.ptr[i]
 			end
-			for i=mn,self.volume-1 do
-				self.ptr[i] = ffi.new(self.ctype)
+			if mn < self.volume then
+				local zero = ffi.new(self.ctype)
+				for i=mn,self.volume-1 do
+					self.ptr[i] = zero
+				end
 			end
-			-- works ... but incorrectly
-			ffi.copy(self.ptr, src.ptr, ffi.sizeof(self.ctype) * self.volume)
---			for i in src:iter() do
---				self.ptr[self:getindex(i)] = src.ptr[src:getindex(i)]
---			end
 		end
 	elseif src ~= nil then
 		for i in src:iter() do
