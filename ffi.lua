@@ -13,6 +13,11 @@ local matrix_ffi = class()
 -- override this to specify a default for the ctor ctype parameter 
 matrix_ffi.real = nil
 
+local function isnumber(x)
+	local xt = type(x)
+	return xt == 'number' or xt == 'cdata'
+end
+
 --[[
 	constructors:
 	matrix_ffi() = nil matrix_ffi {}
@@ -77,33 +82,42 @@ end
 
 -- sorry, for my matrix lib compat,
 -- you gotta set ctypes with matrix_ffi.real = whatever ctype
-function matrix_ffi.const(value, dim, ...)
-	local self = matrix_ffi(nil, nil,
-		type(dim) == 'table'
-		and matrix_ffi(dim)
-		or matrix_ffi{dim, ...})
-	for i=0,self.volume-1 do
-		self.ptr[i] = value
+function matrix_ffi.const(value, dims, ctype)
+	ctype = ctype or dims.ctype
+	assert(type(dims) == 'table')
+	if not (ctype == nil or type(ctype) == 'string') then
+		error("got unknown ctype: "..require 'ext.tolua'(ctype))
 	end
-	return self
+	local result = matrix_ffi(nil, ctype, matrix_ffi(dims))
+	for i=0,result.volume-1 do
+		result.ptr[i] = value
+	end
+	return result
 end
 
 -- matches matrix_lua except the matrix ref
-function matrix_ffi.zeros(...)
-	return matrix_ffi.const(0, ...)
+function matrix_ffi.zeros(dims, ctype)
+	ctype = ctype or dims.ctype
+	assert(ctype == nil or type(ctype) == 'string')
+	return matrix_ffi.const(0, dims, ctype)
 end
 
 -- matches matrix_lua except the matrix ref
-function matrix_ffi.ones(...)
-	return matrix_ffi.const(1, ...)
+function matrix_ffi.ones(dims, ctype)
+	return matrix_ffi.const(1, dims, ctype)
 end
 
 -- could match matrix_lua except the matrix ref, if I copied it back over, but it might be slightly slower?
-function matrix_ffi.lambda(size, f, result)
+function matrix_ffi.lambda(size, f, result, ctype)
 	local size = matrix_ffi:isa(size) 
-		and size or matrix_ffi(size)
+		and size 
+		or matrix_ffi(size)
+	ctype = ctype or size.ctype
+	if not (ctype == nil or type(ctype) == 'string') then
+		error("got unknown ctype: "..require 'ext.tolua'(ctype))
+	end
 	if size:degree() == 0 then return f() end
-	if not result then result = size:zeros() end
+	if not result then result = size:zeros(ctype) end
 	for i in result:iter() do
 		local x = assert(f(i:unpack()))  
 		result[i] = x
@@ -230,8 +244,9 @@ function matrix_ffi:__newindex(i,v)
 		rawset(self,i,v)
 		return
 	end
-	
-	if type(v) == 'table' then
+
+	local vt = type(v)
+	if vt == 'table' then
 		-- make sure v is a matrix_ffi
 		if not matrix_ffi:isa(v) then 
 			v = matrix_ffi(v) 
@@ -242,10 +257,12 @@ function matrix_ffi:__newindex(i,v)
 			for k=1,j.volume do t[k+#i] = j[k] end
 			self.ptr[self:getindex(t)] = v[j]
 		end
-	elseif type(v) == 'number' then
+	elseif vt == 'number' 
+	or vt == 'cdata'	-- TODO only matching ffi.typeof(v) == self.ctype?
+	then
 		self.ptr[self:getindex(i)] = v
 	else
-		error("can only assign numbers or tables, not "..type(v))
+		error("can only assign numbers or tables, not "..require 'ext.tolua'(v))
 	end
 end
 
@@ -259,7 +276,7 @@ end
 
 function matrix_ffi.__add(a,b)
 	local c = matrix_ffi(a)
-	if type(b) == 'number' then
+	if isnumber(b) then
 		for i=0,c.volume-1 do
 			c.ptr[i] = c.ptr[i] + b
 		end
@@ -278,7 +295,7 @@ end
 
 function matrix_ffi.__sub(a,b)
 	local c = matrix_ffi(a)
-	if type(b) == 'number' then
+	if isnumber(b) then
 		for i=0,c.volume-1 do
 			c.ptr[i] = c.ptr[i] - b
 		end
@@ -299,7 +316,7 @@ end
 -- matches matrix_lua except the matrix ref
 function matrix_ffi:range()
 	return coroutine.wrap(function()
-		local i = matrix_ffi.zeros(self.volume)
+		local i = matrix_ffi{self.volume}:zeros()
 		for j=1,self.volume do
 			i[j] = 1
 		end
@@ -324,8 +341,8 @@ end
 
 -- matches matrix_lua except matrix ref
 function matrix_ffi.scale(a,s)
-	if type(a) == 'number' then return a * b end
-	assert(type(s) == 'number')
+	if isnumber(a) then return a * b end
+	assert(isnumber(s))
 	a = matrix_ffi(a)
 	for i in a:iter() do
 		a[i] = a[i] * s
@@ -335,10 +352,10 @@ end
 
 -- could match matrix_lua except matrix ref if I copied it back
 function matrix_ffi.inner(a,b,metric,aj,bj, c)
-	if type(a) == 'number' then
-		if type(b) == 'number' then return a * b end
+	if isnumber(a) then
+		if isnumber(b) then return a * b end
 		return b:scale(a)
-	elseif type(b) == 'number' then
+	elseif isnumber(b) then
 		return a:scale(b)
 	end
 	aj = aj or a:degree()
@@ -376,8 +393,8 @@ function matrix_ffi.inner(a,b,metric,aj,bj, c)
 					ib[bj] = v
 					local ai = a[ia]
 					local bi = b[ib]
-					assert(type(ai) == 'number')
-					assert(type(bi) == 'number')
+					assert(isnumber(ai))
+					assert(isnumber(bi))
 					sum = sum + metric[u][v] * ai * bi
 				end
 			end
@@ -387,8 +404,8 @@ function matrix_ffi.inner(a,b,metric,aj,bj, c)
 				ib[bj] = u
 				local ai = a[ia]
 				local bi = b[ib]
-				assert(type(ai) == 'number')
-				assert(type(bi) == 'number')
+				assert(isnumber(ai))
+				assert(isnumber(bi))
 				sum = sum + ai * bi
 			end
 		end
@@ -409,7 +426,7 @@ end
 -- matches matrix_lua except matrix ref 
 function matrix_ffi.__div(a,b)
 	assert(matrix_ffi:isa(a))
-	assert(type(b) == 'number')
+	assert(isnumber(b))
 	return matrix_ffi.lambda(a:size(), function(...)
 		return a(...) / b
 	end)
