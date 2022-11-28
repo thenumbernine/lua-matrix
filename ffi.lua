@@ -56,6 +56,7 @@ function matrix_ffi:init(src, ctype, size)
 	self.volume = self.size_:prod()
 
 	self.step = matrix_lua(self.size_)
+	-- TODO make step optional row vs col major
 	self.step[1] = 1
 	for i=2,#self.size_ do
 		self.step[i] = self.step[i-1] * self.size_[i-1]
@@ -514,6 +515,25 @@ function matrix_ffi.__eq(a,b)
 	end
 	return true
 end
+
+-- [[ copied from matrix.lua
+function matrix_ffi:transpose(aj,bj)
+	--dimensions to transpose
+	aj = aj or 1
+	bj = bj or 2
+	local size = self:size()
+	size[aj], size[bj] = size[bj], size[aj]
+	return matrix_ffi.lambda(size, function(...)
+		local si = {...}
+		si[aj], si[bj] = si[bj], si[aj]
+		return self[si]
+	end)
+end
+
+function matrix_ffi:T(...)
+	return self:transpose(...)
+end
+--]]
 
 function matrix_ffi:map(f)
 	return self:size():lambda(function(...)
