@@ -560,7 +560,7 @@ function matrix_ffi:transpose(aj,bj)
 		local si = {...}
 		si[aj], si[bj] = si[bj], si[aj]
 		return self[si]
-	end)
+	end, nil, self.ctype)
 end
 
 function matrix_ffi:T(...)
@@ -591,6 +591,21 @@ function matrix_ffi:diag()
 			return ffi.new(self.ctype)
 		end
 	end, nil, self.ctype)
+end
+
+function matrix_ffi.eye(size, ctype)
+	size = matrix_ffi(size)
+	if size.volume == 0 then return 1 end
+	local m,n
+	if size.volume == 1 then
+		m, n = size[1]
+	else
+		m, n = size[1], size[2]
+	end
+	ctype = ctype or size.ctype
+	return matrix_ffi.lambda({m, n}, function(i,j)
+		return i == j and 1 or 0
+	end, nil, ctype)
 end
 
 return matrix_ffi
