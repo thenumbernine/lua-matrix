@@ -582,4 +582,15 @@ function matrix_ffi:unpack()
 	return table.unpack(t)
 end
 
+function matrix_ffi:diag()
+	local size = self:size()
+	return matrix_ffi.lambda({size[1], size[1]}, function(i,j)
+		if i == j then
+			return self[i]
+		else
+			return ffi.new(self.ctype)
+		end
+	end, nil, self.ctype)
+end
+
 return matrix_ffi
