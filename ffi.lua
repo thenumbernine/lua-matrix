@@ -112,6 +112,10 @@ function matrix_ffi:init(src, ctype, size)
 	end
 end
 
+function matrix_ffi.cast(A, ctype)
+	return matrix_ffi(A, ctype)
+end
+
 -- sorry, for my matrix lib compat,
 -- you gotta set ctypes with matrix_ffi.real = whatever ctype
 function matrix_ffi.const(value, dims, ctype)
