@@ -73,6 +73,26 @@ function matrix.lambda(size, f)
 	return self
 end
 
+-- expands the i'th dimension to i, i+1 
+function matrix:diag(i)
+	i = i or 1
+	self = matrix(self)
+	local size = self:size()
+	local newsize = matrix(size)
+	table.insert(newsize, i, size[i])
+	return newsize:lambda(function(...)
+		local ji1 = select(i, ...)
+		local ji2 = select(i+1, ...)
+		if ji1 == ji2 then
+			local srcj = table{...}
+			srcj:remove(i)
+			return self[srcj]
+		else
+			return 0
+		end
+	end)
+end
+
 function matrix.eye(size)
 	if #size == 0 then return 1 end
 	if #size == 1 then size[2] = size[1] end
