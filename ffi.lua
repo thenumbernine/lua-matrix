@@ -77,6 +77,10 @@ function matrix_ffi:init(src, ctype, size)
 		-- then make sure complex ctypes have their metamethods defined
 		require 'complex'
 	end
+	-- use only one name for when multiple work
+	-- idk how i'll handle typedefs
+	-- is there a luajit ffi api for looking up typedef original types?
+	if self.ctype == 'complex' then self.ctype = 'complex double' end
 
 	self.ptr = ffi.new(self.ctype..'[?]', math.max(self.volume,1))
 
@@ -623,7 +627,12 @@ function matrix_ffi.eye(size, ctype)
 	end, nil, ctype)
 end
 
------- LAPACKE SUPPORT ------
+------------ LAPACKE SUPPORT ------------ 
+-- should I put this in its own file?
+-- right now it only tries to load lapacke if any functions are called, so I dont think separating it into another file is necessary
+
+-- NOTICE I'm not handling any type for 'complex' alone, which luajit has synonymous for 'complex double'
+-- so maybe I'll change the matrix_ffi ctor to swap that out
 
 local scalarTypeForComplexType = {
 	float = 'float',
@@ -632,31 +641,26 @@ local scalarTypeForComplexType = {
 	['complex double'] = 'double',
 }
 
-local svdNameForType = {
-	float = 'LAPACKE_sgesvd',
-	double = 'LAPACKE_dgesvd',
-	['complex float'] = 'LAPACKE_cgesvd',
-	['complex double'] = 'LAPACKE_zgesvd',
+local lapackeLetterForType = {
+	float = 's',
+	double = 'd',
+	['complex float'] = 'c',
+	['complex double'] = 'z',
 }
+
+local function getLapackeNameForType(ctype, name)
+	local letter = lapackeLetterForType[ctype]
+	if not letter then
+		error("can't find the lapacke letter associated with the ctype "..tostring(ctype))
+	end
+	return 'LAPACKE_'..letter..name
+end
+
+
 --[[
 perform a 3x3 svd
 for the sake of a 3x3 matrix-exponent
 https://www.ibm.com/docs/en/essl/6.2?topic=llss-sgesvd-dgesvd-cgesvd-zgesvd-sgesdd-dgesdd-cgesdd-zgesdd-singular-value-decomposition-general-matrix
-int LAPACKE_dgesvd(
-	int matrix_layout,
-	char jobu,
-	char jobvt,
-	int m,
-	lapack_int n,
-	double* a,
-	int lda,
-	double* s,
-	double* u,
-	lapack_int ldu,
-	double* vt,
-	int ldvt,
-	double* superb
-);
 --]]
 function matrix_ffi.svd(A)
 	local lapacke = require 'ffi.lapacke'
@@ -664,10 +668,7 @@ function matrix_ffi.svd(A)
 --print('A.ctype', A.ctype)
 	local size = A:size()
 	assert(matrix_ffi:isa(size))
-	local f = svdNameForType[A.ctype]
-	if not svdNameForType then
-		error("can't figure out which svd function to call for C type "..A.ctype)
-	end
+	local svdName = getLapackeNameForType(A.ctype, 'gesvd')
 	local m, n = size:unpack()
 	local U = matrix_ffi(nil, A.ctype, size)
 --print('U.ctype', U.ctype)
@@ -681,7 +682,7 @@ function matrix_ffi.svd(A)
 	local VT = matrix_ffi(nil, A.ctype, size)
 --print('VT.ctype', VT.ctype)
 	local superb = ffi.new(scalarType..'[2]') -- ... ???
-	lapacke[f](
+	lapacke[svdName](
 		lapacke.LAPACK_COL_MAJOR,	-- int matrix_layout,
 		('A'):byte(),				-- char jobu,	-- all m columns (the left singluar vectors) are returned in array u.
 		('A'):byte(),				-- char jobvt,	-- all n rows (the right singular vectors) are returned in array vt.
@@ -700,55 +701,11 @@ function matrix_ffi.svd(A)
 	return U, S, VT:T()
 end
 
-local eigNameForType = {
-	float = 'LAPACKE_sggev',
-	double = 'LAPACKE_dggev',
-	['complex float'] = 'LAPACKE_cggev',
-	['complex double'] = 'LAPACKE_zggev',
-}
-
---[[
-real api
-int LAPACKE_dggev(
-	int matrix_layout,
-	char jobvl,
-	char jobvr,
-	int n,
-	double* a,
-	lapack_int lda,
-	double* b,
-	int ldb,
-	double* alphar,
-	double* alphai,
-	double* beta,
-	double* vl,
-	int ldvl,
-	double* vr,
-	int ldvr
-);
-complex api
-int LAPACKE_cggev(
-	int matrix_layout,
-	char jobvl,
-	char jobvr,
-	int n,
-	float __complex__* a,
-	lapack_int lda,
-	float __complex__* b,
-	int ldb,
-	float __complex__* alpha,
-	float __complex__* beta,
-	lapack_complex_float* vl,
-	int ldvl,
-	float __complex__* vr,
-	int ldvr
-);
---]]
 -- Avr = λBvr
 function matrix_ffi.eig(A, B)
 	local lapacke = require 'ffi.lapacke'
 	local A = matrix_ffi(A)	-- don't modify original
-	local f = eigNameForType[A.ctype]
+	local eigName = getLapackeNameForType(A.ctype, 'ggev')
 	local size = A:size()
 	assert(matrix_ffi:isa(size))
 	local m, n = size:unpack()
@@ -759,11 +716,12 @@ function matrix_ffi.eig(A, B)
 	local VL = matrix_ffi(nil, A.ctype, size)
 	local VR = matrix_ffi(nil, A.ctype, size)
 	local alphai
+	-- too bad, I was really hoping all lapack functions of matching suffixes has matching # of args
 	if A.ctype == 'complex float'
 	or A.ctype == 'complex double'
 	then
 --print("cplx path")
-		lapacke[f](
+		lapacke[eigName](
 			lapacke.LAPACK_COL_MAJOR,	-- int matrix_layout,
 			('V'):byte(),				-- char jobvl,
 			('V'):byte(),				-- char jobvr,
@@ -783,7 +741,7 @@ function matrix_ffi.eig(A, B)
 	then
 --print("real path")
 		alphai = matrix_ffi(nil, A.ctype, {n})
-		lapacke[f](
+		lapacke[eigName](
 			lapacke.LAPACK_COL_MAJOR,	-- int matrix_layout,
 			('V'):byte(),	-- char jobvl,
 			('V'):byte(),	-- char jobvr,
@@ -803,6 +761,37 @@ function matrix_ffi.eig(A, B)
 		error("here")
 	end
 	return alpha, VR, VL, beta, alphai
+end
+
+function matrix_ffi.inv(A)
+	local lapacke = require 'ffi.lapacke'
+	local A = matrix_ffi(A)	-- don't modify original
+	local getrfName = getLapackeNameForType(A.ctype, 'getrf')
+	-- hmm seems there is a ?geicd that is like getri but also returns the determinant, 
+	--  but I'm not seeing it in LAPACKE, maybe just LAPACK?
+	-- why do I use LAPACKE if matrix.ffi is only col-major anyways?
+	-- TODO add row-major optional support to matrix.ffi by reversing the step[] table
+	local getriName = getLapackeNameForType(A.ctype, 'getri')
+	local size = A:size()
+	assert(matrix_ffi:isa(size))
+	local m, n = size:unpack()
+	assert(m == n)	-- needed for getri
+	local mn = math.min(m,n)
+	local ipiv = matrix_ffi(nil, 'int', {mn})
+	lapacke[getrfName](
+		lapacke.LAPACK_COL_MAJOR,	-- int matrix_layout,
+		m,							-- lapack_int m,
+		n, 							-- lapack_int n,
+		A.ptr,						-- float* a,
+		m,							-- int lda,
+		ipiv.ptr) 					-- lapack_int* ipiv
+	lapacke[getriName](
+		lapacke.LAPACK_COL_MAJOR,	-- int matrix_layout,
+		n,							-- lapack_int n,
+		A.ptr,						-- float* a,
+		n,							-- int lda,
+		ipiv.ptr)					-- const lapack_int* ipiv 
+	return A
 end
 
 return matrix_ffi
