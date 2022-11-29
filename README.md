@@ -5,9 +5,11 @@
 
 ### Dependencies:
 
-- https://github.com/thenumbernine/lua-ext
+- depends on https://github.com/thenumbernine/lua-ext
 - matrix.ffi depends on LuaJIT, otherwise this works with vanilla Lua
 - matrix.lapinv depends on https://github.com/thenumbernine/solver-lua (which itself depends on this project)
+- matrix.ffi has optional LAPACKE support which depends on https://github.com/thenumbernine/lua-ffi-bindings and on LAPACKE as well
+- if you use a complex type with matrix.ffi then this library is required: https://github.com/thenumbernine/complex-lua
 
 ### Example:
 
@@ -27,4 +29,4 @@ etc
 
 gives you a 2x2 matrix filled with the value for pi.
 
-(TODO finish this)
+(TODO more)

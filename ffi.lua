@@ -10,7 +10,7 @@ local matrix_lua = require 'matrix'
 
 local matrix_ffi = class()
 
--- override this to specify a default for the ctor ctype parameter 
+-- override this to specify a default for the ctor ctype parameter
 matrix_ffi.real = nil
 
 local function isnumber(x)
@@ -21,20 +21,20 @@ end
 --[[
 	constructors:
 	matrix_ffi() = nil matrix_ffi {}
-	matrix_ffi(t, ctype, size, env), 
+	matrix_ffi(t, ctype, size, env),
 		t can be
-		- a (arbitrarily nested) table 
+		- a (arbitrarily nested) table
 		- another matrix_ffi object
 		env is the cl.obj.env. it is required unless matrix_ffi.env is already set.
-		ctype is the buffer type.  default is env.real 
+		ctype is the buffer type.  default is env.real
 
 		size is derived from src, unless src is nil
 		in which case size can specify the size of the matrix
 		I really am only using it with matrix_ffi.zeros, not planning on it being public
 --]]
 function matrix_ffi:init(src, ctype, size)
-	if type(src) == 'table' 
-	and not matrix_ffi:isa(src) 
+	if type(src) == 'table'
+	and not matrix_ffi:isa(src)
 	then
 		src = matrix_lua(src)
 	end
@@ -71,6 +71,12 @@ function matrix_ffi:init(src, ctype, size)
 		or (src and src.ctype) 	-- src ctype
 		or self.real 			-- default ctype
 		or 'double'				-- last case
+
+	-- if we're building a matrix with complex ctype ...
+	if self.ctype:lower():find'complex' then
+		-- then make sure complex ctypes have their metamethods defined
+		require 'complex'
+	end
 
 	self.ptr = ffi.new(self.ctype..'[?]', math.max(self.volume,1))
 
@@ -125,8 +131,8 @@ end
 
 -- could match matrix_lua except the matrix ref, if I copied it back over, but it might be slightly slower?
 function matrix_ffi.lambda(size, f, result, ctype)
-	local size = matrix_ffi:isa(size) 
-		and size 
+	local size = matrix_ffi:isa(size)
+		and size
 		or matrix_ffi(size)
 	ctype = ctype or size.ctype
 	if not (ctype == nil or type(ctype) == 'string') then
@@ -135,7 +141,7 @@ function matrix_ffi.lambda(size, f, result, ctype)
 	if size:degree() == 0 then return f() end
 	if not result then result = size:zeros(ctype) end
 	for i in result:iter() do
-		local x = assert(f(i:unpack()))  
+		local x = assert(f(i:unpack()))
 		result[i] = x
 	end
 	return result
@@ -165,7 +171,7 @@ function matrix_ffi:__tostring(n)
 	return self:toLuaMatrix():__tostring(n)
 end
 
--- matches matrix_lua 
+-- matches matrix_lua
 function matrix_ffi.__concat(a,b)
 	return tostring(a) .. tostring(b)
 end
@@ -176,7 +182,7 @@ end
 function matrix_ffi:__call(...)
 	local i = ...
 	local n = select('#', ...)
-	if type(i) == 'table' then error'TODO' end 
+	if type(i) == 'table' then error'TODO' end
 	local deg = self:degree()
 	assert(n <= deg, "tried to index too far into a matrix")
 	
@@ -208,15 +214,15 @@ end
 
 -- matches matrix_lua except the matrix ref
 function matrix_ffi:__index(i)
-	if type(i) == 'number' then 
+	if type(i) == 'number' then
 		if self:degree() == 1 then
 			return self.ptr[i-1]
 		else
 			return self(i)
 		end
 	end
-	if type(i) ~= 'table' then 
-		return rawget(self,i) or rawget(matrix_ffi,i) 
+	if type(i) ~= 'table' then
+		return rawget(self,i) or rawget(matrix_ffi,i)
 	end
 	if matrix_ffi:isa(i) then
 		return self(i:unpack())
@@ -249,8 +255,8 @@ end
 function matrix_ffi:__newindex(i,v)
 	if type(i) == 'table' then
 		-- make sure i is a matrix_lua
-		if matrix_ffi:isa(i) then 
-			i = i:toLuaMatrix() 
+		if matrix_ffi:isa(i) then
+			i = i:toLuaMatrix()
 		elseif not matrix_lua:isa(i) then
 			i = matrix_lua(i)
 		end
@@ -264,8 +270,8 @@ function matrix_ffi:__newindex(i,v)
 	local vt = type(v)
 	if vt == 'table' then
 		-- make sure v is a matrix_ffi
-		if not matrix_ffi:isa(v) then 
-			v = matrix_ffi(v) 
+		if not matrix_ffi:isa(v) then
+			v = matrix_ffi(v)
 		end
 		for j in v:iter() do
 			local t = matrix_lua()
@@ -273,7 +279,7 @@ function matrix_ffi:__newindex(i,v)
 			for k=1,j.volume do t[k+#i] = j[k] end
 			self.ptr[self:getindex(t)] = v[j]
 		end
-	elseif vt == 'number' 
+	elseif vt == 'number'
 	or vt == 'cdata'	-- TODO only matching ffi.typeof(v) == self.ctype?
 	then
 		self.ptr[self:getindex(i)] = v
@@ -346,12 +352,12 @@ function matrix_ffi:range()
 					return
 				end
 			end
-		until nil 
+		until nil
 	end)
 end
 
-function matrix_ffi:iter() 
-	return self:size():range() 
+function matrix_ffi:iter()
+	return self:size():range()
 end
 
 
@@ -439,7 +445,7 @@ function matrix_ffi.mul(c, a,b,metric,aj,bj)
 	return matrix_ffi.__mul(a,b,metric,aj,bj, c)
 end
 
--- matches matrix_lua except matrix ref 
+-- matches matrix_lua except matrix ref
 function matrix_ffi.__div(a,b)
 	assert(matrix_ffi:isa(a))
 	assert(isnumber(b))
@@ -448,7 +454,7 @@ function matrix_ffi.__div(a,b)
 	end)
 end
 
--- matches matrix_lua except matrix ref 
+-- matches matrix_lua except matrix ref
 function matrix_ffi.emul(a,b)
 	if not matrix_ffi:isa(a) and not matrix_ffi:isa(b) then
 		return a * b
@@ -469,7 +475,7 @@ function matrix_ffi.emul(a,b)
 	end)
 end
 
--- matches matrix_lua except matrix ref 
+-- matches matrix_lua except matrix ref
 function matrix_ffi.ediv(a,b)
 	if not matrix_ffi:isa(a) and not matrix_ffi:isa(b) then
 		return a / b
@@ -574,6 +580,8 @@ function matrix_ffi:map(f)
 	end)
 end
 
+-- TODO unpack into a single Lua table?
+-- or for matrix.unpack compat, unpack only the outermost dim into submatrices that are matrix_ffi ?
 function matrix_ffi:unpack()
 	local t = {}
 	for i=0,self.volume-1 do
@@ -582,11 +590,18 @@ function matrix_ffi:unpack()
 	return table.unpack(t)
 end
 
-function matrix_ffi:diag()
-	local size = self:size()
-	return matrix_ffi.lambda({size[1], size[1]}, function(i,j)
-		if i == j then
-			return self[i]
+function matrix_ffi:diag(i)
+	i = i or 1
+	local size = table{self:size():unpack()}
+	local newsize = table(size)
+	newsize:insert(i, size[i])
+	return matrix_ffi.lambda(newsize, function(...)
+		local ji1 = select(i, ...)
+		local ji2 = select(i+1, ...)
+		if ji1 == ji2 then
+			local srcj = table{...}
+			srcj:remove(i)
+			return self[srcj]
 		else
 			return ffi.new(self.ctype)
 		end
@@ -606,6 +621,188 @@ function matrix_ffi.eye(size, ctype)
 	return matrix_ffi.lambda({m, n}, function(i,j)
 		return i == j and 1 or 0
 	end, nil, ctype)
+end
+
+------ LAPACKE SUPPORT ------
+
+local scalarTypeForComplexType = {
+	float = 'float',
+	double = 'double',
+	['complex float'] = 'float',
+	['complex double'] = 'double',
+}
+
+local svdNameForType = {
+	float = 'LAPACKE_sgesvd',
+	double = 'LAPACKE_dgesvd',
+	['complex float'] = 'LAPACKE_cgesvd',
+	['complex double'] = 'LAPACKE_zgesvd',
+}
+--[[
+perform a 3x3 svd
+for the sake of a 3x3 matrix-exponent
+https://www.ibm.com/docs/en/essl/6.2?topic=llss-sgesvd-dgesvd-cgesvd-zgesvd-sgesdd-dgesdd-cgesdd-zgesdd-singular-value-decomposition-general-matrix
+int LAPACKE_dgesvd(
+	int matrix_layout,
+	char jobu,
+	char jobvt,
+	int m,
+	lapack_int n,
+	double* a,
+	int lda,
+	double* s,
+	double* u,
+	lapack_int ldu,
+	double* vt,
+	int ldvt,
+	double* superb
+);
+--]]
+function matrix_ffi.svd(A)
+	local lapacke = require 'ffi.lapacke'
+	local A = matrix_ffi(A)	-- don't modify original
+--print('A.ctype', A.ctype)
+	local size = A:size()
+	assert(matrix_ffi:isa(size))
+	local f = svdNameForType[A.ctype]
+	if not svdNameForType then
+		error("can't figure out which svd function to call for C type "..A.ctype)
+	end
+	local m, n = size:unpack()
+	local U = matrix_ffi(nil, A.ctype, size)
+--print('U.ctype', U.ctype)
+	-- TODO or just remove the 'complex' from the type, if it is there
+	local scalarType = scalarTypeForComplexType[A.ctype]
+	if not scalarType then
+		error("can't find scalar type for C type "..A.ctype)
+	end
+	local S = matrix_ffi(nil, scalarType, {m})
+--print('S.ctype', S.ctype)
+	local VT = matrix_ffi(nil, A.ctype, size)
+--print('VT.ctype', VT.ctype)
+	local superb = ffi.new(scalarType..'[2]') -- ... ???
+	lapacke[f](
+		lapacke.LAPACK_COL_MAJOR,	-- int matrix_layout,
+		('A'):byte(),				-- char jobu,	-- all m columns (the left singluar vectors) are returned in array u.
+		('A'):byte(),				-- char jobvt,	-- all n rows (the right singular vectors) are returned in array vt.
+		m,							-- int m,
+		n,							-- lapack_int n,
+		A.ptr,						-- double* a,
+		m,							-- int lda,
+		S.ptr,						-- double* s,
+		U.ptr,						-- double* u,
+		m,							-- lapack_int ldu,
+		VT.ptr,						-- double* vt,
+		n,							-- int ldvt,
+		superb)						-- double* superb
+--print('S\n'..S)
+--print('VT\n'..VT)
+	return U, S, VT:T()
+end
+
+local eigNameForType = {
+	float = 'LAPACKE_sggev',
+	double = 'LAPACKE_dggev',
+	['complex float'] = 'LAPACKE_cggev',
+	['complex double'] = 'LAPACKE_zggev',
+}
+
+--[[
+real api
+int LAPACKE_dggev(
+	int matrix_layout,
+	char jobvl,
+	char jobvr,
+	int n,
+	double* a,
+	lapack_int lda,
+	double* b,
+	int ldb,
+	double* alphar,
+	double* alphai,
+	double* beta,
+	double* vl,
+	int ldvl,
+	double* vr,
+	int ldvr
+);
+complex api
+int LAPACKE_cggev(
+	int matrix_layout,
+	char jobvl,
+	char jobvr,
+	int n,
+	float __complex__* a,
+	lapack_int lda,
+	float __complex__* b,
+	int ldb,
+	float __complex__* alpha,
+	float __complex__* beta,
+	lapack_complex_float* vl,
+	int ldvl,
+	float __complex__* vr,
+	int ldvr
+);
+--]]
+-- Avr = λBvr
+function matrix_ffi.eig(A, B)
+	local lapacke = require 'ffi.lapacke'
+	local A = matrix_ffi(A)	-- don't modify original
+	local f = eigNameForType[A.ctype]
+	local size = A:size()
+	assert(matrix_ffi:isa(size))
+	local m, n = size:unpack()
+	assert(m == n)
+	B = B or size:eye(A.ctype)
+	local alpha = matrix_ffi(nil, A.ctype, {n})
+	local beta = matrix_ffi(nil, A.ctype, {n})
+	local VL = matrix_ffi(nil, A.ctype, size)
+	local VR = matrix_ffi(nil, A.ctype, size)
+	local alphai
+	if A.ctype == 'complex float'
+	or A.ctype == 'complex double'
+	then
+--print("cplx path")
+		lapacke[f](
+			lapacke.LAPACK_COL_MAJOR,	-- int matrix_layout,
+			('V'):byte(),				-- char jobvl,
+			('V'):byte(),				-- char jobvr,
+			n,							-- int n,
+			A.ptr,						-- float __complex__* a,
+			n,							-- lapack_int lda,
+			B.ptr,						-- float __complex__* b,
+			n,							-- int ldb,
+			alpha.ptr,					-- float __complex__* alpha,
+			beta.ptr,					-- float __complex__* beta,
+			VL.ptr,						-- lapack_complex_float* vl,
+			n,							-- int ldvl,
+			VR.ptr,						-- float __complex__* vr,
+			n)							-- int ldvr
+	elseif A.ctype == 'float'
+	or A.ctype == 'double'
+	then
+--print("real path")
+		alphai = matrix_ffi(nil, A.ctype, {n})
+		lapacke[f](
+			lapacke.LAPACK_COL_MAJOR,	-- int matrix_layout,
+			('V'):byte(),	-- char jobvl,
+			('V'):byte(),	-- char jobvr,
+			n,				-- int n,
+			A.ptr,			-- double* a,
+			n,				-- lapack_int lda,
+			B.ptr,			-- double* b,
+			n,				-- int ldb,
+			alpha.ptr,		-- double* alphar,
+			alphai.ptr,		-- double* alphai,
+			beta.ptr,		-- double* beta,
+			VL.ptr,			-- double* vl,
+			n,				-- int ldvl,
+			VR.ptr,			-- double* vr,
+			n)				-- int ldvr
+	else
+		error("here")
+	end
+	return alpha, VR, VL, beta, alphai
 end
 
 return matrix_ffi

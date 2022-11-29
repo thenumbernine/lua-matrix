@@ -73,7 +73,7 @@ function matrix.lambda(size, f)
 	return self
 end
 
--- expands the i'th dimension to i, i+1 
+-- expands the i'th dimension to i, i+1
 function matrix:diag(i)
 	i = i or 1
 	self = matrix(self)
@@ -122,8 +122,8 @@ function matrix:size(sizes, offset)
 			assert(typeSelfI == 'number' or typeSelfI == 'string' or typeSelfI == 'cdata', "matrix had a bad dimension")
 		end
 	-- else if self[1] is something that can be indexed
-	-- TODO what if it is cdata?  or a table?  
-	-- it could either be something indended as a value or something intended as iteration 
+	-- TODO what if it is cdata?  or a table?
+	-- it could either be something indended as a value or something intended as iteration
 	-- how to determine which is which?
 	-- the most flexible way might be to make this test matrix:isa(self[1]) ...
 	elseif self[1] ~= nil then
@@ -278,12 +278,12 @@ function matrix:range()
 					return
 				end
 			end
-		until nil 
+		until nil
 	end)
 end
 
-function matrix:iter() 
-	return self:size():range() 
+function matrix:iter()
+	return self:size():range()
 end
 
 function matrix.scale(a,s)
@@ -296,7 +296,7 @@ function matrix.scale(a,s)
 	return a
 end
 
--- non-metatable version will be matrix mul 
+-- non-metatable version will be matrix mul
 -- assumes the innermost dim of a equals the outermost dim of b
 function matrix.outer(a,b)
 	if type(a) == 'number' then
@@ -423,7 +423,7 @@ function matrix.ediv(a,b)
 	end)
 end
 
--- per-element exponent 
+-- per-element exponent
 function matrix.epow(a,b)
 	if not matrix:isa(a) and not matrix:isa(b) then
 		return a ^ b
@@ -486,7 +486,7 @@ function matrix:max()
 	return x
 end
 
--- what is the name of this operation? it's dot for vectors.  it and itself on matrices is the Frobenius norm.  
+-- what is the name of this operation? it's dot for vectors.  it and itself on matrices is the Frobenius norm.
 function matrix.dot(a,b)
 	assert(#a == #b)
 	local sum = 0
@@ -605,7 +605,7 @@ end
 function matrix.cross(a, b)
 	local na = #a
 	local nb = #b
-	-- [[ the fast way, for R3 x R3 cross 
+	-- [[ the fast way, for R3 x R3 cross
 	if na == 3 and nb == 3 then
 		return matrix{
 			a[2] * b[3] - a[3] * b[2],
@@ -614,7 +614,7 @@ function matrix.cross(a, b)
 		}
 	end
 	--]]
-	-- [[ the slow way, for any dimension.  
+	-- [[ the slow way, for any dimension.
 	-- notice there's a free parameter of the result dimension, I just picked the max
 	return b * matrix.levciv{nb, math.max(na, nb), na} * a
 	--]]
@@ -624,7 +624,7 @@ function matrix.rotate(theta, nx, ny, nz)
 	local I = matrix.eye{3}
 	local K = matrix{{0, -nz, ny}, {nz, 0, -nx}, {-ny, nx, 0}}
 	--local K = -matrix{nx, ny, nz} * matrix.levciv(3)
-	local K2 = K * K 
+	local K2 = K * K
 	return I
 		+ K * math.sin(theta)
 		+ K2 * (1 - math.cos(theta))
