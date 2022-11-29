@@ -5,6 +5,12 @@ local ffi = require 'ffi'
 local class = require 'ext.class'
 local table = require 'ext.table'
 
+local complex
+local function requireComplex()
+	complex = require 'complex'
+	return complex
+end
+
 -- here's my original pure-Lua version
 local matrix_lua = require 'matrix'
 
@@ -75,7 +81,7 @@ function matrix_ffi:init(src, ctype, size)
 	-- if we're building a matrix with complex ctype ...
 	if self.ctype:lower():find'complex' then
 		-- then make sure complex ctypes have their metamethods defined
-		require 'complex'
+		requireComplex()
 	end
 	-- use only one name for when multiple work
 	-- idk how i'll handle typedefs
@@ -792,6 +798,14 @@ function matrix_ffi.inv(A)
 		n,							-- int lda,
 		ipiv.ptr)					-- const lapack_int* ipiv 
 	return A
+end
+
+-- https://www.mathworks.com/help/matlab/ref/expm.html
+function matrix_ffi.expm(A)
+	local D, VR = matrix_ffi(A):eig()
+	local m = isComplex[A.ctype] and complex or math
+	assert(m)	-- complex should exist if A.ctype is a complex type
+	return VR * D:map(m.exp):diag() * VR:inv()
 end
 
 return matrix_ffi
