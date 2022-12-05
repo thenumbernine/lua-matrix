@@ -52,6 +52,9 @@ initialize an empty matrix
 matrix.zeros(dim1, ..., dimN)
 matrix.zeros{dim1, ..., dimN}
 the latter lets you use a matrix to initialize a matrix: matrix{2,2}:zeros() produces {{0,0},{0,0}}
+
+TODO this used to be compat with matrix_ffi, but then I added ctype to matrix_ffi.zeros, and that meant forcing only {dim1 ... dimN} ctor in matrix_ffi
+ so then should I remove the (dim1, ..., dimN) signature from matrix.zeros?
 --]]
 function matrix.zeros(...)
 	return matrix.const(0, ...)
