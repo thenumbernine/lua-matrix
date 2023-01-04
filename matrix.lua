@@ -457,7 +457,10 @@ function matrix:sum()
 end
 
 function matrix:prod()
-	assert(type(self[1]) == 'number')
+	local t = type(self[1])
+	if t ~= 'number' then
+		error("got a bad type: "..t)
+	end
 	local prod = self[1]
 	for i=2,#self do
 		prod = prod * self[i]

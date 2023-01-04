@@ -57,7 +57,7 @@ function matrix_ffi:init(src, ctype, size)
 		if matrix_ffi:isa(size) then
 			self.size_ = matrix_lua{size:unpack()}
 		else
-			self.size_ = matrix_lua(size)
+			self.size_ = matrix_lua{size}
 		end
 	else
 		assert(src == nil)
@@ -164,7 +164,7 @@ end
 -- returns the matrix size
 -- size_ is stored as a matrix_lua, but :size() will return a matrix_ffi
 function matrix_ffi:size()
-	return matrix_ffi(self.size_)
+	return matrix_ffi(self.size_, self.ctype)
 end
 
 function matrix_ffi:len()

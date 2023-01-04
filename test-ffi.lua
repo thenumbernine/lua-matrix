@@ -68,3 +68,7 @@ local LU = L * U
 print('L * U\n'..LU)
 print('L * U\n'..matrix_ffi(LU, 'double'))
 --]]
+
+-- what about diagonalization
+-- and what about boosts
+-- and combining them?
