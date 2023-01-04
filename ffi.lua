@@ -164,7 +164,11 @@ end
 -- returns the matrix size
 -- size_ is stored as a matrix_lua, but :size() will return a matrix_ffi
 function matrix_ffi:size()
-	return matrix_ffi(self.size_, self.ctype)
+	return matrix_ffi(self.size_
+		-- if I use ctype here then it gets forwarded into lambda
+		-- but honestly a size's ctype should be an integer while a lambda's should be a floating point
+		--, self.ctype
+	)
 end
 
 function matrix_ffi:len()
