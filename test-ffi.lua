@@ -2,9 +2,6 @@
 
 -- TODO put this in matrix/matrix_ffi ?
 
-local ffi = require 'ffi'
-local lapacke = require 'ffi.lapacke'
-local matrix = require 'matrix'
 local matrix_ffi = require 'matrix.ffi'
 require 'complex'	-- setup metatype and operators for ffi complex types
 
@@ -52,7 +49,7 @@ print('beta\n'..beta)
 print('alpha\n'..alpha:diag())
 local RAL = VR * alpha:diag() * VL
 -- so our left-eigenvectors aren't necessarily the inverse of the right ... ?
--- and that means A = R Lambda L isnt true? 
+-- and that means A = R Lambda L isnt true?
 -- but A = R Lambda R^-1 is?
 print('VR * alpha * VL\n'..RAL)
 print('VR * alpha * VL\n'..matrix_ffi(RAL, 'double'))

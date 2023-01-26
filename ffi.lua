@@ -56,6 +56,8 @@ function matrix_ffi:init(src, ctype, size)
 	elseif size then
 		if matrix_ffi:isa(size) then
 			self.size_ = matrix_lua{size:unpack()}
+		elseif type(size) == 'table' then
+			self.size_ = matrix_lua{table.unpack(size)}
 		else
 			self.size_ = matrix_lua{size}
 		end
@@ -145,7 +147,7 @@ end
 
 -- could match matrix_lua except the matrix ref, if I copied it back over, but it might be slightly slower?
 function matrix_ffi.lambda(size, f, result, ctype)
-	local size = matrix_ffi:isa(size)
+	size = matrix_ffi:isa(size)
 		and size
 		or matrix_ffi(size)
 	ctype = ctype or size.ctype
@@ -198,12 +200,12 @@ end
 -- only handles m(i1,...,iN) for N = the degree of the matrix m
 -- no submatrix access, no slicing, etc.
 function matrix_ffi:__call(...)
-	local i = ...
+	local firstI = ...
 	local n = select('#', ...)
-	if type(i) == 'table' then error'TODO' end
+	if type(firstI) == 'table' then error'TODO' end
 	local deg = self:degree()
 	assert(n <= deg, "tried to index too far into a matrix")
-	
+
 	if n == deg then
 		local index = 0
 		for j=1,n do
@@ -381,7 +383,7 @@ end
 
 -- matches matrix_lua except matrix ref
 function matrix_ffi.scale(a,s)
-	if isnumber(a) then return a * b end
+	if isnumber(a) then return a * s end
 	assert(isnumber(s))
 	a = matrix_ffi(a)
 	for i in a:iter() do
@@ -407,7 +409,7 @@ function matrix_ffi.inner(a,b,metric,aj,bj, c)
 	local ssb = table(sb)
 	local sbj = ssb:remove(bj)
 	assert(saj == sbj, "inner dimensions must be equal")
-	
+
 	local sc = table(ssa):append(ssb)
 
 	if c then
@@ -631,7 +633,7 @@ function matrix_ffi.eye(size, ctype)
 	if size.volume == 0 then return 1 end
 	local m,n
 	if size.volume == 1 then
-		m, n = size[1]
+		m, n = size[1], size[1]
 	else
 		m, n = size[1], size[2]
 	end
@@ -641,7 +643,7 @@ function matrix_ffi.eye(size, ctype)
 	end, nil, ctype)
 end
 
------------- LAPACKE SUPPORT ------------ 
+------------ LAPACKE SUPPORT ------------
 -- should I put this in its own file?
 -- right now it only tries to load lapacke if any functions are called, so I dont think separating it into another file is necessary
 
@@ -678,7 +680,7 @@ https://www.ibm.com/docs/en/essl/6.2?topic=llss-sgesvd-dgesvd-cgesvd-zgesvd-sges
 --]]
 function matrix_ffi.svd(A)
 	local lapacke = require 'ffi.lapacke'
-	local A = matrix_ffi(A)	-- don't modify original
+	A = matrix_ffi(A)	-- don't modify original
 --print('A.ctype', A.ctype)
 	local size = A:size()
 	assert(matrix_ffi:isa(size))
@@ -718,7 +720,7 @@ end
 -- Avr = λBvr
 function matrix_ffi.eig(A, B)
 	local lapacke = require 'ffi.lapacke'
-	local A = matrix_ffi(A)	-- don't modify original
+	A = matrix_ffi(A)	-- don't modify original
 	local eigName = getLapackeNameForType(A.ctype, 'ggev')
 	local size = A:size()
 	assert(matrix_ffi:isa(size))
@@ -779,9 +781,9 @@ end
 
 function matrix_ffi.inv(A)
 	local lapacke = require 'ffi.lapacke'
-	local A = matrix_ffi(A)	-- don't modify original
+	A = matrix_ffi(A)	-- don't modify original
 	local getrfName = getLapackeNameForType(A.ctype, 'getrf')
-	-- hmm seems there is a ?geicd that is like getri but also returns the determinant, 
+	-- hmm seems there is a ?geicd that is like getri but also returns the determinant,
 	--  but I'm not seeing it in LAPACKE, maybe just LAPACK?
 	-- why do I use LAPACKE if matrix.ffi is only col-major anyways?
 	-- TODO add row-major optional support to matrix.ffi by reversing the step[] table
@@ -804,14 +806,14 @@ function matrix_ffi.inv(A)
 		n,							-- lapack_int n,
 		A.ptr,						-- float* a,
 		n,							-- int lda,
-		ipiv.ptr)					-- const lapack_int* ipiv 
+		ipiv.ptr)					-- const lapack_int* ipiv
 	return A
 end
 
 -- https://www.mathworks.com/help/matlab/ref/expm.html
 function matrix_ffi.expm(A)
 	local D, VR, VL, beta, Di = matrix_ffi(A):eig()
-	local isComplex = A.ctype:find'complex'
+	--local isComplex = A.ctype:find'complex'
 	if not Di then
 		assert(complex)	-- complex should exist if A.ctype is a complex type
 		D = D:map(complex.exp)

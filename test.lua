@@ -2,6 +2,7 @@
 local matrix = require 'matrix'
 local _ = require 'matrix.index'
 
+local t
 t = matrix{1,2,3}
 assert(t == matrix{1,2,3})
 

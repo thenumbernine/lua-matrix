@@ -290,7 +290,7 @@ function matrix:iter()
 end
 
 function matrix.scale(a,s)
-	if type(a) == 'number' then return a * b end
+	if type(a) == 'number' then return a * s end
 	assert(type(s) == 'number')
 	a = matrix(a)
 	for i in a:iter() do

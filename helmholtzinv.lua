@@ -7,7 +7,7 @@ local lapinv = require 'matrix.lapinv'
 local table = require 'ext.table'
 
 --[[
--- functions for finding the inverse Helmholtz decomposition 
+-- functions for finding the inverse Helmholtz decomposition
 -- finds the inverse of a curl
 -- given a grid of [i1...in, j] for dim(j) = 3
 -- returns the like-dimensioned inverse of the curl
@@ -51,7 +51,7 @@ return function(args)
 	end
 	-- needs to be 3D for div or curl to work
 	assert(size:len() == 3)
-	
+
 	local result
 	if R then
 		-- rearrange R's so the vector indexes are first
@@ -60,8 +60,8 @@ return function(args)
 			i:insert(i:remove(1))
 			return R[i]
 		end)
-	
-		-- A = -veclap^-1 R 
+
+		-- A = -veclap^-1 R
 		local A = matrix{3,size:unpack()}:zeros()
 		for i=1,3 do
 			A[i] = -lapinv(table(args, {
@@ -78,11 +78,11 @@ return function(args)
 		end)
 		local curlA = curl(A,dx)
 		result = curlA
-	end	
+	end
 	if D then
 		local phi = D and lapinv(table(args, {lap=D, dx=dx})) or nil
 		local gradPhi = grad(phi, dx)
 		result = result and result + gradPhi or gradPhi
-	end	
-	return result 
+	end
+	return result
 end

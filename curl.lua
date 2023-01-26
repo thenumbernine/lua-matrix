@@ -10,7 +10,7 @@ return function(A,dx)
 		if x==1 or x==sx
 		or y==1 or y==sy
 		or z==1 or z==sz
-		then 
+		then
 			return 0
 		end
 		local j = i%3+1
