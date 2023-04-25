@@ -139,6 +139,7 @@ function matrix:size(sizes, offset)
 end
 
 -- for matrix_ffi compat, since luajit is still 5.1 compat and doesn't have a __len overload operator
+-- TODO vec lib uses :lenght() as the vector length
 function matrix:len()
 	return #self
 end
@@ -639,5 +640,8 @@ end
 function matrix.unit(m)
 	return m / m:norm()
 end
+
+-- naming compat with the vec library
+matrix.normalize = matrix.unit
 
 return matrix

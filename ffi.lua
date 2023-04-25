@@ -173,6 +173,8 @@ function matrix_ffi:size()
 	)
 end
 
+-- TODO rename this.
+-- it's too ambiguous with vec.length()
 function matrix_ffi:len()
 	return self.size_[1]
 end
