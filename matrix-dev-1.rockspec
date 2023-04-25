@@ -22,6 +22,7 @@ build = {
 		["matrix.grad"] = "grad.lua",
 		["matrix.helmholtzinv"] = "helmholtzinv.lua",
 		["matrix.index"] = "index.lua",
+		["matrix.inverse"] = "inverse.lua",
 		["matrix.lapinv"] = "lapinv.lua",
 		["matrix"] = "matrix.lua",
 		["matrix.test-ffi"] = "test-ffi.lua"

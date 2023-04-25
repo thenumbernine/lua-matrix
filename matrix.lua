@@ -571,6 +571,8 @@ matrix.unpack = table.unpack
 matrix.determinant = require 'matrix.determinant'
 matrix.det = matrix.determinant
 
+matrix.inverse = require 'matrix.inverse'
+matrix.inv = matrix.inverse
 
 -- these are vector-math specific:
 
