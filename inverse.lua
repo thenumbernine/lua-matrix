@@ -30,16 +30,16 @@ return function(A, A_det, b)
 			if A_11 == 0 then
 				return AInv, A, "determinant is zero"
 			end
-			local result = matrix{1/A_11}
+			local result = matrix{{1/A_11}}
 			if b then result = result * b end
 			return result, invdim:eye()
 		elseif m == 2 and n == 2 then
 			A_det = A_det or A:determinant()
 			if A_det ~= 0 then
-				local result = matrix(
+				local result = matrix{
 					{A[2][2], -A[1][2]},
 					{-A[2][1], A[1][1]}
-				) / A_det
+				} / A_det
 				--if b then result = result * b end
 				return result, invdim:eye()
 			end
@@ -50,11 +50,11 @@ return function(A, A_det, b)
 			A_det = A_det or A:determinant()
 			if A_det ~= 0 then
 				-- transpose, +-+- sign stagger, for each element remove that row and column and
-				local result = matrix(
+				local result = matrix{
 					{A[2][2]*A[3][3]-A[2][3]*A[3][2], A[1][3]*A[3][2]-A[1][2]*A[3][3], A[1][2]*A[2][3]-A[1][3]*A[2][2]},
 					{A[2][3]*A[3][1]-A[2][1]*A[3][3], A[1][1]*A[3][3]-A[1][3]*A[3][1], A[1][3]*A[2][1]-A[1][1]*A[2][3]},
 					{A[2][1]*A[3][2]-A[2][2]*A[3][1], A[1][2]*A[3][1]-A[1][1]*A[3][2], A[1][1]*A[2][2]-A[1][2]*A[2][1]}
-				) / A_det
+				} / A_det
 				--if b then result = result * b end
 				return result, invdim:eye()
 			end
