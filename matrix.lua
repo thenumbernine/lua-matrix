@@ -138,8 +138,18 @@ function matrix:size(sizes, offset)
 	return sizes
 end
 
--- for matrix_ffi compat, since luajit is still 5.1 compat and doesn't have a __len overload operator
--- TODO vec lib uses :lenght() as the vector length
+--[[
+Python uses 'len' as the size of an array / vector
+Javascript uses 'length' for the length of a string or array.
+C++ string uses 'length' and 'size'.  vector / containers use '.size'
+
+Matlab uses 'length' as the length / max size of an object.
+Matlab uses 'norm' as the L2 norm / vector norm / vector magnitude.
+
+For matrix.ffi compat, since luajit is still 5.1 compat and doesn't have a __len overload operator
+matrix.ffi overloads __len aka # operator for the matrix first dimension size.
+My lua vec, lua vec-ffi, cpp Tensor libs use .length() as the vector magnitude.
+--]]
 function matrix:len()
 	return #self
 end
