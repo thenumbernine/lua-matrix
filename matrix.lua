@@ -653,11 +653,12 @@ function matrix.rotate(theta, nx, ny, nz)
 		+ K2 * (1 - math.cos(theta))
 end
 
-function matrix.unit(m)
+-- matlab, glsl, etc
+function matrix.normalize(m)
 	return m / m:norm()
 end
 
--- naming compat with the vec library
-matrix.normalize = matrix.unit
+-- where did I get this as a function name?
+matrix.unit = matrix.normalize
 
 return matrix
