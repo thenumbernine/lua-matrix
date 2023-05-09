@@ -803,10 +803,11 @@ function matrix_ffi.inv(A)
 	if m == 2 then
 		local a,b,c,d = A[1][1], A[2][1], A[1][2], A[2][2]
 		local det = a * d - b * c
-		A[1][1] = d / det
-		A[2][1] = -b / det
-		A[1][2] = -c / det
-		A[2][2] = a / det
+		-- A_ij pos is i + m * j
+		A.ptr[0 + 2 * 0] = d / det
+		A.ptr[0 + 2 * 1] = -c / det
+		A.ptr[1 + 2 * 0] = -b / det
+		A.ptr[1 + 2 * 1] = a / det
 		return A
 	end
 
