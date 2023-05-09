@@ -843,4 +843,7 @@ function matrix_ffi.expm(A)
 	return VR * D:diag() * VR:inv()
 end
 
+matrix_ffi.determinant = require 'matrix.determinant'
+matrix_ffi.det = matrix_ffi.determinant
+
 return matrix_ffi
