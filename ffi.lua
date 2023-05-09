@@ -782,20 +782,36 @@ function matrix_ffi.eig(A, B)
 end
 
 function matrix_ffi.inv(A)
-	local lapacke = require 'ffi.lapacke'
 	A = matrix_ffi(A)	-- don't modify original
-	local getrfName = getLapackeNameForType(A.ctype, 'getrf')
 	-- hmm seems there is a ?geicd that is like getri but also returns the determinant,
 	--  but I'm not seeing it in LAPACKE, maybe just LAPACK?
 	-- why do I use LAPACKE if matrix.ffi is only col-major anyways?
 	-- TODO add row-major optional support to matrix.ffi by reversing the step[] table
-	local getriName = getLapackeNameForType(A.ctype, 'getri')
 	local size = A:size()
 	assert(matrix_ffi:isa(size))
 	local m, n = size:unpack()
+	if m ~= n then
+		error("expected square matrix, got dimensions "..m..', '..n)
+	end
 	assert(m == n)	-- needed for getri
 	local mn = math.min(m,n)
 	local ipiv = matrix_ffi(nil, 'int', {mn})
+
+	-- ok lapacke is sometimes the ffi.cdef that 'table overflow's luajit
+	-- meaning i'm including too much in luajit
+	-- so lets avoid it if possible ...
+	if m == 2 then
+		local a,b,c,d = A[1][1], A[2][1], A[1][2], A[2][2]
+		local det = a * d - b * c
+		A[1][1] = d / det
+		A[2][1] = -b / det
+		A[1][2] = -c / det
+		A[2][2] = a / det
+		return A
+	end
+
+	local lapacke = require 'ffi.lapacke'
+	local getrfName = getLapackeNameForType(A.ctype, 'getrf')
 	lapacke[getrfName](
 		lapacke.LAPACK_COL_MAJOR,	-- int matrix_layout,
 		m,							-- lapack_int m,
@@ -803,6 +819,7 @@ function matrix_ffi.inv(A)
 		A.ptr,						-- float* a,
 		m,							-- int lda,
 		ipiv.ptr) 					-- lapack_int* ipiv
+	local getriName = getLapackeNameForType(A.ctype, 'getri')
 	lapacke[getriName](
 		lapacke.LAPACK_COL_MAJOR,	-- int matrix_layout,
 		n,							-- lapack_int n,
