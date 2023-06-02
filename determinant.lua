@@ -3,13 +3,15 @@ local function determinant(m)
 	local matrix = require 'matrix'
 
 	local dim = m:size()
-	if #dim == 0 then return 1 end
+	--local ndim = #dim	-- doesn't work with matrix_ffi
+	local ndim = dim:size()[1]	-- works with matrix_ffi
+	if ndim == 0 then return 1 end
 
-	local volume = #dim == 0 and 0 or dim:prod()
+	local volume = ndim == 0 and 0 or dim:prod()
 	if volume == 0 then return 1 end
 
-	if #dim ~= 2 then
-		error("dim is "..#dim..' with value '..m[1][1])
+	if ndim ~= 2 then
+		error("dim is "..ndim..' with value '..m[1][1])
 	end
 
 	-- not square?
