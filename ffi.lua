@@ -1018,9 +1018,23 @@ function matrix_ffi:setScale(x,y,z)
 	self.ptr[15] = 1
 	return self
 end
--- TODO optimize the in-place apply instead of this slow crap:
-function matrix_ffi:applyScale(...)
-	return self:copy(self * matrix_ffi{4,4}:zeros():setScale(...))
+function matrix_ffi:applyScale(x,y,z)
+	x = x or 1
+	y = y or 1
+	z = z or 1
+	self.ptr[0] = self.ptr[0] * x
+	self.ptr[1] = self.ptr[1] * x
+	self.ptr[2] = self.ptr[2] * x
+	self.ptr[3] = self.ptr[3] * x
+	self.ptr[4] = self.ptr[4] * y
+	self.ptr[5] = self.ptr[5] * y
+	self.ptr[6] = self.ptr[6] * y
+	self.ptr[7] = self.ptr[7] * y
+	self.ptr[8] = self.ptr[8] * z
+	self.ptr[9] = self.ptr[9] * z
+	self.ptr[10] = self.ptr[10] * z
+	self.ptr[11] = self.ptr[11] * z
+	return self
 end
 
 function matrix_ffi:setTranslate(x,y,z)
@@ -1046,32 +1060,15 @@ function matrix_ffi:setTranslate(x,y,z)
 	self.ptr[15] = 1
 	return self
 end
--- TODO optimize the in-place apply instead of this slow crap:
-function matrix_ffi:applyTranslate(...)
-	return self:copy(self * matrix_ffi{4,4}:zeros():setTranslate(...))
-end
-
---[[ optimize the :apply and this isn't needed anymore right?
-function matrix_ffi:translateMultScale(x,y,z,sx,sy,sz)
-	assert(#self.size_ == 2 and self.size_[1] == 4 and self.size_[2] == 4)
-	self.ptr[0] = sx
-	self.ptr[4] = 0
-	self.ptr[8] = 0
-	self.ptr[12] = x
-	self.ptr[1] = 0
-	self.ptr[5] = sy
-	self.ptr[9] = 0
-	self.ptr[13] = y
-	self.ptr[2] = 0
-	self.ptr[6] = 0
-	self.ptr[10] = sz
-	self.ptr[14] = z
-	self.ptr[3] = 0
-	self.ptr[7] = 0
-	self.ptr[11] = 0
-	self.ptr[15] = 1
+function matrix_ffi:applyTranslate(x,y,z)
+	x = x or 0
+	y = y or 0
+	z = z or 0
+	self.ptr[12] = x * self.ptr[0] + y * self.ptr[4] + z * self.ptr[8] + self.ptr[12]
+	self.ptr[13] = x * self.ptr[1] + y * self.ptr[5] + z * self.ptr[9] + self.ptr[13]
+	self.ptr[14] = x * self.ptr[2] + y * self.ptr[6] + z * self.ptr[10] + self.ptr[14]
+	self.ptr[15] = x * self.ptr[3] + y * self.ptr[7] + z * self.ptr[11] + self.ptr[15]
 	return self
 end
---]]
 
 return matrix_ffi
