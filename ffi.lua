@@ -861,6 +861,7 @@ end)
 
 function matrix_ffi:ident()
 	self:copy(ident)
+	return self
 end
 function matrix_ffi:ortho(l,r,b,t,n,f)
 	assert(#self.size_ == 2 and self.size_[1] == 4 and self.size_[2] == 4)
@@ -880,6 +881,7 @@ function matrix_ffi:ortho(l,r,b,t,n,f)
 	self.ptr[7] = 0
 	self.ptr[11] = 0
 	self.ptr[15] = 1
+	return self
 end
 function matrix_ffi:frustum(l,r,b,t,n,f)
 	assert(#self.size_ == 2 and self.size_[1] == 4 and self.size_[2] == 4)
@@ -899,6 +901,7 @@ function matrix_ffi:frustum(l,r,b,t,n,f)
 	self.ptr[7] = 0
 	self.ptr[11] = -1
 	self.ptr[15] = 0
+	return self
 end
 -- http://iphonedevelopment.blogspot.com/2008/12/glulookat.html?m=1
 local function cross(ax,ay,az,bx,by,bz)
@@ -935,6 +938,7 @@ function matrix_ffi:lookAt(ex,ey,ez,cx,cy,cz,upx,upy,upz)
 	self.ptr[7] = 0
 	self.ptr[11] = 0
 	self.ptr[15] = 1
+	return self
 end
 function matrix_ffi:rotate(degrees,x,y,z)
 	assert(#self.size_ == 2 and self.size_[1] == 4 and self.size_[2] == 4)
@@ -969,6 +973,7 @@ function matrix_ffi:rotate(degrees,x,y,z)
 	self.ptr[7] = 0
 	self.ptr[11] = 0
 	self.ptr[15] = 1
+	return self
 end
 function matrix_ffi:scale(x,y,z)
 	assert(#self.size_ == 2 and self.size_[1] == 4 and self.size_[2] == 4)
@@ -988,6 +993,7 @@ function matrix_ffi:scale(x,y,z)
 	self.ptr[13] = 0
 	self.ptr[14] = 0
 	self.ptr[15] = 1
+	return self
 end
 function matrix_ffi:translate(x,y,z)
 	assert(#self.size_ == 2 and self.size_[1] == 4 and self.size_[2] == 4)
@@ -1007,6 +1013,7 @@ function matrix_ffi:translate(x,y,z)
 	self.ptr[7] = 0
 	self.ptr[11] = 0
 	self.ptr[15] = 1
+	return self
 end
 function matrix_ffi:translateMultScale(x,y,z,sx,sy,sz)
 	assert(#self.size_ == 2 and self.size_[1] == 4 and self.size_[2] == 4)
@@ -1026,6 +1033,7 @@ function matrix_ffi:translateMultScale(x,y,z,sx,sy,sz)
 	self.ptr[7] = 0
 	self.ptr[11] = 0
 	self.ptr[15] = 1
+	return self
 end
 
 return matrix_ffi
