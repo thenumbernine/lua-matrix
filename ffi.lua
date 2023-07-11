@@ -847,4 +847,185 @@ end
 matrix_ffi.determinant = require 'matrix.determinant'
 matrix_ffi.det = matrix_ffi.determinant
 
+function matrix_ffi:copy(src)
+	assert(self:size() == src:size())
+	ffi.copy(self.ptr, src.ptr, 16*4)
+end
+
+-- glsl functions:
+
+local ident = matrix_ffi({4,4}, 'float'):lambda(function(i,j)
+	return i==j and 1 or 0
+end)
+
+
+function matrix_ffi:ident()
+	self:copy(ident)
+end
+function matrix_ffi:ortho(l,r,b,t,n,f)
+	assert(#self.size_ == 2 and self.size_[1] == 4 and self.size_[2] == 4)
+	self.ptr[0] = 2 / (r - l)
+	self.ptr[4] = 0
+	self.ptr[8] = 0
+	self.ptr[12] = -(r + l) / (r - l)
+	self.ptr[1] = 0
+	self.ptr[5] = 2 / (t - b)
+	self.ptr[9] = 0
+	self.ptr[13] = -(t + b) / (t - b)
+	self.ptr[2] = 0
+	self.ptr[6] = 0
+	self.ptr[10] = -2 / (f - n)
+	self.ptr[14] = -(f + n) / (f - n)
+	self.ptr[3] = 0
+	self.ptr[7] = 0
+	self.ptr[11] = 0
+	self.ptr[15] = 1
+end
+function matrix_ffi:frustum(l,r,b,t,n,f)
+	assert(#self.size_ == 2 and self.size_[1] == 4 and self.size_[2] == 4)
+	self.ptr[0] = 2 * n / (r - l)
+	self.ptr[4] = 0
+	self.ptr[8] = (r + l) / (r - l)
+	self.ptr[12] = 0
+	self.ptr[1] = 0
+	self.ptr[5] = 2 * n / (t - b)
+	self.ptr[9] = (t + b) / (t - b)
+	self.ptr[13] = 0
+	self.ptr[2] = 0
+	self.ptr[6] = 0
+	self.ptr[10] = -(f + n) / (f - n)
+	self.ptr[14] = -2 * f * n / (f - n)
+	self.ptr[3] = 0
+	self.ptr[7] = 0
+	self.ptr[11] = -1
+	self.ptr[15] = 0
+end
+-- http://iphonedevelopment.blogspot.com/2008/12/glulookat.html?m=1
+local function cross(ax,ay,az,bx,by,bz)
+	local cx = ay * bz - az * by
+	local cy = az * bx - ax * bz
+	local cz = ax * by - ay * bx
+	return cx,cy,cz
+end
+local function normalize(x,y,z)
+	local m = math.sqrt(x*x + y*y + z*z)
+	if m > 1e-20 then
+		return x/m, y/m, z/m
+	end
+	return 1,0,0
+end
+function matrix_ffi:lookAt(ex,ey,ez,cx,cy,cz,upx,upy,upz)
+	assert(#self.size_ == 2 and self.size_[1] == 4 and self.size_[2] == 4)
+	local zx,zy,zz = normalize(ex-cx,ey-cy,ez-cz)
+	local xx, xy, xz = normalize(cross(upx,upy,upz,zx,zy,zz))
+	local yx, yy, yz = normalize(cross(zx,zy,zz,xx,xy,xz))
+	self.ptr[0] = xx
+	self.ptr[4] = xy
+	self.ptr[8] = xz
+	self.ptr[12] = 0
+	self.ptr[1] = yx
+	self.ptr[5] = yy
+	self.ptr[9] = yz
+	self.ptr[13] =0
+	self.ptr[2] = zx
+	self.ptr[6] = zy
+	self.ptr[10] = zz
+	self.ptr[14] = 0
+	self.ptr[3] = 0
+	self.ptr[7] = 0
+	self.ptr[11] = 0
+	self.ptr[15] = 1
+end
+function matrix_ffi:rotate(degrees,x,y,z)
+	assert(#self.size_ == 2 and self.size_[1] == 4 and self.size_[2] == 4)
+	local r = math.rad(degrees)
+	local l = math.sqrt(x*x + y*y + z*z)
+	if l < 1e-20 then
+		x=1
+		y=0
+		z=0
+	else
+		local il = 1/l
+		x=x*il
+		y=y*il
+		z=z*il
+	end
+	local c = math.cos(r)
+	local s = math.sin(r)
+	local ic = 1 - c
+	self.ptr[0] = c + x*x*ic
+	self.ptr[4] = x*y*ic - z*s
+	self.ptr[8] = x*z*ic + y*s
+	self.ptr[12] = 0
+	self.ptr[1] = x*y*ic + z*s
+	self.ptr[5] = c + y*y*ic
+	self.ptr[9] = y*z*ic - x*s
+	self.ptr[13] = 0
+	self.ptr[2] = x*z*ic - y*s
+	self.ptr[6] = y*z*ic + x*s
+	self.ptr[10] = c + z*z*ic
+	self.ptr[14] = 0
+	self.ptr[3] = 0
+	self.ptr[7] = 0
+	self.ptr[11] = 0
+	self.ptr[15] = 1
+end
+function matrix_ffi:scale(x,y,z)
+	assert(#self.size_ == 2 and self.size_[1] == 4 and self.size_[2] == 4)
+	self.ptr[0] = x
+	self.ptr[1] = 0
+	self.ptr[2] = 0
+	self.ptr[3] = 0
+	self.ptr[4] = 0
+	self.ptr[5] = y
+	self.ptr[6] = 0
+	self.ptr[7] = 0
+	self.ptr[8] = 0
+	self.ptr[9] = 0
+	self.ptr[10] = z
+	self.ptr[11] = 0
+	self.ptr[12] = 0
+	self.ptr[13] = 0
+	self.ptr[14] = 0
+	self.ptr[15] = 1
+end
+function matrix_ffi:translate(x,y,z)
+	assert(#self.size_ == 2 and self.size_[1] == 4 and self.size_[2] == 4)
+	self.ptr[0] = 1
+	self.ptr[4] = 0
+	self.ptr[8] = 0
+	self.ptr[12] = x
+	self.ptr[1] = 0
+	self.ptr[5] = 1
+	self.ptr[9] = 0
+	self.ptr[13] = y
+	self.ptr[2] = 0
+	self.ptr[6] = 0
+	self.ptr[10] = 1
+	self.ptr[14] = z
+	self.ptr[3] = 0
+	self.ptr[7] = 0
+	self.ptr[11] = 0
+	self.ptr[15] = 1
+end
+function matrix_ffi:translateMultScale(x,y,z,sx,sy,sz)
+	assert(#self.size_ == 2 and self.size_[1] == 4 and self.size_[2] == 4)
+	self.ptr[0] = sx
+	self.ptr[4] = 0
+	self.ptr[8] = 0
+	self.ptr[12] = x
+	self.ptr[1] = 0
+	self.ptr[5] = sy
+	self.ptr[9] = 0
+	self.ptr[13] = y
+	self.ptr[2] = 0
+	self.ptr[6] = 0
+	self.ptr[10] = sz
+	self.ptr[14] = z
+	self.ptr[3] = 0
+	self.ptr[7] = 0
+	self.ptr[11] = 0
+	self.ptr[15] = 1
+end
+
 return matrix_ffi
