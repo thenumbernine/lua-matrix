@@ -849,7 +849,7 @@ matrix_ffi.det = matrix_ffi.determinant
 
 function matrix_ffi:copy(src)
 	assert(self:size() == src:size())
-	ffi.copy(self.ptr, src.ptr, self.volume)
+	ffi.copy(self.ptr, src.ptr, ffi.sizeof(self.ctype) * self.volume)
 	return self
 end
 
