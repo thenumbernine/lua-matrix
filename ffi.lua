@@ -859,6 +859,27 @@ local ident = matrix_ffi({4,4}, 'float'):lambda(function(i,j)
 	return i==j and 1 or 0
 end)
 
+-- optimized
+function matrix_ffi:mul4x4(a,b)
+	-- assert self isn't the table a or b, or else this will mess up
+	self.ptr[0 + 4 * 0] = 0 + a.ptr[0 + 4 * 0] * b.ptr[0 + 4 * 0] + a.ptr[0 + 4 * 1] * b.ptr[1 + 4 * 0] + a.ptr[0 + 4 * 2] * b.ptr[2 + 4 * 0] + a.ptr[0 + 4 * 3] * b.ptr[3 + 4 * 0]
+	self.ptr[0 + 4 * 1] = 0 + a.ptr[0 + 4 * 0] * b.ptr[0 + 4 * 1] + a.ptr[0 + 4 * 1] * b.ptr[1 + 4 * 1] + a.ptr[0 + 4 * 2] * b.ptr[2 + 4 * 1] + a.ptr[0 + 4 * 3] * b.ptr[3 + 4 * 1]
+	self.ptr[0 + 4 * 2] = 0 + a.ptr[0 + 4 * 0] * b.ptr[0 + 4 * 2] + a.ptr[0 + 4 * 1] * b.ptr[1 + 4 * 2] + a.ptr[0 + 4 * 2] * b.ptr[2 + 4 * 2] + a.ptr[0 + 4 * 3] * b.ptr[3 + 4 * 2]
+	self.ptr[0 + 4 * 3] = 0 + a.ptr[0 + 4 * 0] * b.ptr[0 + 4 * 3] + a.ptr[0 + 4 * 1] * b.ptr[1 + 4 * 3] + a.ptr[0 + 4 * 2] * b.ptr[2 + 4 * 3] + a.ptr[0 + 4 * 3] * b.ptr[3 + 4 * 3]
+	self.ptr[1 + 4 * 0] = 0 + a.ptr[1 + 4 * 0] * b.ptr[0 + 4 * 0] + a.ptr[1 + 4 * 1] * b.ptr[1 + 4 * 0] + a.ptr[1 + 4 * 2] * b.ptr[2 + 4 * 0] + a.ptr[1 + 4 * 3] * b.ptr[3 + 4 * 0]
+	self.ptr[1 + 4 * 1] = 0 + a.ptr[1 + 4 * 0] * b.ptr[0 + 4 * 1] + a.ptr[1 + 4 * 1] * b.ptr[1 + 4 * 1] + a.ptr[1 + 4 * 2] * b.ptr[2 + 4 * 1] + a.ptr[1 + 4 * 3] * b.ptr[3 + 4 * 1]
+	self.ptr[1 + 4 * 2] = 0 + a.ptr[1 + 4 * 0] * b.ptr[0 + 4 * 2] + a.ptr[1 + 4 * 1] * b.ptr[1 + 4 * 2] + a.ptr[1 + 4 * 2] * b.ptr[2 + 4 * 2] + a.ptr[1 + 4 * 3] * b.ptr[3 + 4 * 2]
+	self.ptr[1 + 4 * 3] = 0 + a.ptr[1 + 4 * 0] * b.ptr[0 + 4 * 3] + a.ptr[1 + 4 * 1] * b.ptr[1 + 4 * 3] + a.ptr[1 + 4 * 2] * b.ptr[2 + 4 * 3] + a.ptr[1 + 4 * 3] * b.ptr[3 + 4 * 3]
+	self.ptr[2 + 4 * 0] = 0 + a.ptr[2 + 4 * 0] * b.ptr[0 + 4 * 0] + a.ptr[2 + 4 * 1] * b.ptr[1 + 4 * 0] + a.ptr[2 + 4 * 2] * b.ptr[2 + 4 * 0] + a.ptr[2 + 4 * 3] * b.ptr[3 + 4 * 0]
+	self.ptr[2 + 4 * 1] = 0 + a.ptr[2 + 4 * 0] * b.ptr[0 + 4 * 1] + a.ptr[2 + 4 * 1] * b.ptr[1 + 4 * 1] + a.ptr[2 + 4 * 2] * b.ptr[2 + 4 * 1] + a.ptr[2 + 4 * 3] * b.ptr[3 + 4 * 1]
+	self.ptr[2 + 4 * 2] = 0 + a.ptr[2 + 4 * 0] * b.ptr[0 + 4 * 2] + a.ptr[2 + 4 * 1] * b.ptr[1 + 4 * 2] + a.ptr[2 + 4 * 2] * b.ptr[2 + 4 * 2] + a.ptr[2 + 4 * 3] * b.ptr[3 + 4 * 2]
+	self.ptr[2 + 4 * 3] = 0 + a.ptr[2 + 4 * 0] * b.ptr[0 + 4 * 3] + a.ptr[2 + 4 * 1] * b.ptr[1 + 4 * 3] + a.ptr[2 + 4 * 2] * b.ptr[2 + 4 * 3] + a.ptr[2 + 4 * 3] * b.ptr[3 + 4 * 3]
+	self.ptr[3 + 4 * 0] = 0 + a.ptr[3 + 4 * 0] * b.ptr[0 + 4 * 0] + a.ptr[3 + 4 * 1] * b.ptr[1 + 4 * 0] + a.ptr[3 + 4 * 2] * b.ptr[2 + 4 * 0] + a.ptr[3 + 4 * 3] * b.ptr[3 + 4 * 0]
+	self.ptr[3 + 4 * 1] = 0 + a.ptr[3 + 4 * 0] * b.ptr[0 + 4 * 1] + a.ptr[3 + 4 * 1] * b.ptr[1 + 4 * 1] + a.ptr[3 + 4 * 2] * b.ptr[2 + 4 * 1] + a.ptr[3 + 4 * 3] * b.ptr[3 + 4 * 1]
+	self.ptr[3 + 4 * 2] = 0 + a.ptr[3 + 4 * 0] * b.ptr[0 + 4 * 2] + a.ptr[3 + 4 * 1] * b.ptr[1 + 4 * 2] + a.ptr[3 + 4 * 2] * b.ptr[2 + 4 * 2] + a.ptr[3 + 4 * 3] * b.ptr[3 + 4 * 2]
+	self.ptr[3 + 4 * 3] = 0 + a.ptr[3 + 4 * 0] * b.ptr[0 + 4 * 3] + a.ptr[3 + 4 * 1] * b.ptr[1 + 4 * 3] + a.ptr[3 + 4 * 2] * b.ptr[2 + 4 * 3] + a.ptr[3 + 4 * 3] * b.ptr[3 + 4 * 3]
+	return self
+end
 
 function matrix_ffi:setIdent()
 	return self:copy(ident)
@@ -883,9 +904,56 @@ function matrix_ffi:setOrtho(l,r,b,t,n,f)
 	self.ptr[15] = 1
 	return self
 end
--- TODO optimize the in-place apply instead of this slow crap:
 function matrix_ffi:applyOrtho(...)
-	return self:copy(self * matrix_ffi{4,4}:zeros():setOrtho(...))
+	assert(#self.size_ == 2 and self.size_[1] == 4 and self.size_[2] == 4)
+	local rhs00 = 2 / (r - l)
+	local rhs01 = 0
+	local rhs02 = 0
+	local rhs03 = -(r + l) / (r - l)
+	local rhs10 = 0
+	local rhs11 = 2 / (t - b)
+	local rhs12 = 0
+	local rhs13 = -(t + b) / (t - b)
+	local rhs20 = 0
+	local rhs21 = 0
+	local rhs22 = -2 / (f - n)
+	local rhs23 = -(f + n) / (f - n)
+	local rhs30 = 0
+	local rhs31 = 0
+	local rhs32 = 0
+	local rhs33 = 1
+	local n00 = 0 + self.ptr[0 + 4 * 0] * rhs00 + self.ptr[0 + 4 * 1] * rhs10 + self.ptr[0 + 4 * 2] * rhs20 + self.ptr[0 + 4 * 3] * rhs30
+	local n01 = 0 + self.ptr[0 + 4 * 0] * rhs01 + self.ptr[0 + 4 * 1] * rhs11 + self.ptr[0 + 4 * 2] * rhs21 + self.ptr[0 + 4 * 3] * rhs31
+	local n02 = 0 + self.ptr[0 + 4 * 0] * rhs02 + self.ptr[0 + 4 * 1] * rhs12 + self.ptr[0 + 4 * 2] * rhs22 + self.ptr[0 + 4 * 3] * rhs32
+	local n03 = 0 + self.ptr[0 + 4 * 0] * rhs03 + self.ptr[0 + 4 * 1] * rhs13 + self.ptr[0 + 4 * 2] * rhs23 + self.ptr[0 + 4 * 3] * rhs33
+	local n10 = 0 + self.ptr[1 + 4 * 0] * rhs00 + self.ptr[1 + 4 * 1] * rhs10 + self.ptr[1 + 4 * 2] * rhs20 + self.ptr[1 + 4 * 3] * rhs30
+	local n11 = 0 + self.ptr[1 + 4 * 0] * rhs01 + self.ptr[1 + 4 * 1] * rhs11 + self.ptr[1 + 4 * 2] * rhs21 + self.ptr[1 + 4 * 3] * rhs31
+	local n12 = 0 + self.ptr[1 + 4 * 0] * rhs02 + self.ptr[1 + 4 * 1] * rhs12 + self.ptr[1 + 4 * 2] * rhs22 + self.ptr[1 + 4 * 3] * rhs32
+	local n13 = 0 + self.ptr[1 + 4 * 0] * rhs03 + self.ptr[1 + 4 * 1] * rhs13 + self.ptr[1 + 4 * 2] * rhs23 + self.ptr[1 + 4 * 3] * rhs33
+	local n20 = 0 + self.ptr[2 + 4 * 0] * rhs00 + self.ptr[2 + 4 * 1] * rhs10 + self.ptr[2 + 4 * 2] * rhs20 + self.ptr[2 + 4 * 3] * rhs30
+	local n21 = 0 + self.ptr[2 + 4 * 0] * rhs01 + self.ptr[2 + 4 * 1] * rhs11 + self.ptr[2 + 4 * 2] * rhs21 + self.ptr[2 + 4 * 3] * rhs31
+	local n22 = 0 + self.ptr[2 + 4 * 0] * rhs02 + self.ptr[2 + 4 * 1] * rhs12 + self.ptr[2 + 4 * 2] * rhs22 + self.ptr[2 + 4 * 3] * rhs32
+	local n23 = 0 + self.ptr[2 + 4 * 0] * rhs03 + self.ptr[2 + 4 * 1] * rhs13 + self.ptr[2 + 4 * 2] * rhs23 + self.ptr[2 + 4 * 3] * rhs33
+	local n30 = 0 + self.ptr[3 + 4 * 0] * rhs00 + self.ptr[3 + 4 * 1] * rhs10 + self.ptr[3 + 4 * 2] * rhs20 + self.ptr[3 + 4 * 3] * rhs30
+	local n31 = 0 + self.ptr[3 + 4 * 0] * rhs01 + self.ptr[3 + 4 * 1] * rhs11 + self.ptr[3 + 4 * 2] * rhs21 + self.ptr[3 + 4 * 3] * rhs31
+	local n32 = 0 + self.ptr[3 + 4 * 0] * rhs02 + self.ptr[3 + 4 * 1] * rhs12 + self.ptr[3 + 4 * 2] * rhs22 + self.ptr[3 + 4 * 3] * rhs32
+	local n33 = 0 + self.ptr[3 + 4 * 0] * rhs03 + self.ptr[3 + 4 * 1] * rhs13 + self.ptr[3 + 4 * 2] * rhs23 + self.ptr[3 + 4 * 3] * rhs33
+	self.ptr[0 + 4 * 0] = n00
+	self.ptr[0 + 4 * 1] = n01
+	self.ptr[0 + 4 * 2] = n02
+	self.ptr[0 + 4 * 3] = n03
+	self.ptr[1 + 4 * 0] = n10
+	self.ptr[1 + 4 * 1] = n11
+	self.ptr[1 + 4 * 2] = n12
+	self.ptr[1 + 4 * 3] = n13
+	self.ptr[2 + 4 * 0] = n20
+	self.ptr[2 + 4 * 1] = n21
+	self.ptr[2 + 4 * 2] = n22
+	self.ptr[2 + 4 * 3] = n23
+	self.ptr[3 + 4 * 0] = n30
+	self.ptr[3 + 4 * 1] = n31
+	self.ptr[3 + 4 * 2] = n32
+	self.ptr[3 + 4 * 3] = n33
 end
 
 function matrix_ffi:setFrustum(l,r,b,t,n,f)
@@ -1019,21 +1087,25 @@ function matrix_ffi:setScale(x,y,z)
 	return self
 end
 function matrix_ffi:applyScale(x,y,z)
-	x = x or 1
-	y = y or 1
-	z = z or 1
-	self.ptr[0] = self.ptr[0] * x
-	self.ptr[1] = self.ptr[1] * x
-	self.ptr[2] = self.ptr[2] * x
-	self.ptr[3] = self.ptr[3] * x
-	self.ptr[4] = self.ptr[4] * y
-	self.ptr[5] = self.ptr[5] * y
-	self.ptr[6] = self.ptr[6] * y
-	self.ptr[7] = self.ptr[7] * y
-	self.ptr[8] = self.ptr[8] * z
-	self.ptr[9] = self.ptr[9] * z
-	self.ptr[10] = self.ptr[10] * z
-	self.ptr[11] = self.ptr[11] * z
+	assert(#self.size_ == 2 and self.size_[1] == 4 and self.size_[2] == 4)
+	if x then
+		self.ptr[0] = self.ptr[0] * x
+		self.ptr[1] = self.ptr[1] * x
+		self.ptr[2] = self.ptr[2] * x
+		self.ptr[3] = self.ptr[3] * x
+	end
+	if y then
+		self.ptr[4] = self.ptr[4] * y
+		self.ptr[5] = self.ptr[5] * y
+		self.ptr[6] = self.ptr[6] * y
+		self.ptr[7] = self.ptr[7] * y
+	end
+	if z then
+		self.ptr[8] = self.ptr[8] * z
+		self.ptr[9] = self.ptr[9] * z
+		self.ptr[10] = self.ptr[10] * z
+		self.ptr[11] = self.ptr[11] * z
+	end
 	return self
 end
 
@@ -1064,6 +1136,7 @@ function matrix_ffi:applyTranslate(x,y,z)
 	x = x or 0
 	y = y or 0
 	z = z or 0
+	assert(#self.size_ == 2 and self.size_[1] == 4 and self.size_[2] == 4)
 	self.ptr[12] = x * self.ptr[0] + y * self.ptr[4] + z * self.ptr[8] + self.ptr[12]
 	self.ptr[13] = x * self.ptr[1] + y * self.ptr[5] + z * self.ptr[9] + self.ptr[13]
 	self.ptr[14] = x * self.ptr[2] + y * self.ptr[6] + z * self.ptr[10] + self.ptr[14]
