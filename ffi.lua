@@ -849,7 +849,8 @@ matrix_ffi.det = matrix_ffi.determinant
 
 function matrix_ffi:copy(src)
 	assert(self:size() == src:size())
-	ffi.copy(self.ptr, src.ptr, 16*4)
+	ffi.copy(self.ptr, src.ptr, self.volume)
+	return self
 end
 
 -- glsl functions:
@@ -859,11 +860,10 @@ local ident = matrix_ffi({4,4}, 'float'):lambda(function(i,j)
 end)
 
 
-function matrix_ffi:ident()
-	self:copy(ident)
-	return self
+function matrix_ffi:setIdent()
+	return self:copy(ident)
 end
-function matrix_ffi:ortho(l,r,b,t,n,f)
+function matrix_ffi:setOrtho(l,r,b,t,n,f)
 	assert(#self.size_ == 2 and self.size_[1] == 4 and self.size_[2] == 4)
 	self.ptr[0] = 2 / (r - l)
 	self.ptr[4] = 0
@@ -883,7 +883,12 @@ function matrix_ffi:ortho(l,r,b,t,n,f)
 	self.ptr[15] = 1
 	return self
 end
-function matrix_ffi:frustum(l,r,b,t,n,f)
+-- TODO optimize the in-place apply instead of this slow crap:
+function matrix_ffi:applyOrtho(...)
+	return self:copy(self * matrix_ffi{4,4}:zeros():setOrtho(...))
+end
+
+function matrix_ffi:setFrustum(l,r,b,t,n,f)
 	assert(#self.size_ == 2 and self.size_[1] == 4 and self.size_[2] == 4)
 	self.ptr[0] = 2 * n / (r - l)
 	self.ptr[4] = 0
@@ -903,6 +908,11 @@ function matrix_ffi:frustum(l,r,b,t,n,f)
 	self.ptr[15] = 0
 	return self
 end
+-- TODO optimize the in-place apply instead of this slow crap:
+function matrix_ffi:applyFrustum(...)
+	return self:copy(self * matrix_ffi{4,4}:zeros():setFrustum(...))
+end
+
 -- http://iphonedevelopment.blogspot.com/2008/12/glulookat.html?m=1
 local function cross(ax,ay,az,bx,by,bz)
 	local cx = ay * bz - az * by
@@ -917,7 +927,7 @@ local function normalize(x,y,z)
 	end
 	return 1,0,0
 end
-function matrix_ffi:lookAt(ex,ey,ez,cx,cy,cz,upx,upy,upz)
+function matrix_ffi:setLookAt(ex,ey,ez,cx,cy,cz,upx,upy,upz)
 	assert(#self.size_ == 2 and self.size_[1] == 4 and self.size_[2] == 4)
 	local zx,zy,zz = normalize(ex-cx,ey-cy,ez-cz)
 	local xx, xy, xz = normalize(cross(upx,upy,upz,zx,zy,zz))
@@ -940,7 +950,12 @@ function matrix_ffi:lookAt(ex,ey,ez,cx,cy,cz,upx,upy,upz)
 	self.ptr[15] = 1
 	return self
 end
-function matrix_ffi:rotate(degrees,x,y,z)
+-- TODO optimize the in-place apply instead of this slow crap:
+function matrix_ffi:applyLookAt(...)
+	return self:copy(self * matrix_ffi{4,4}:zeros():setLookAt(...))
+end
+
+function matrix_ffi:setRotate(degrees,x,y,z)
 	assert(#self.size_ == 2 and self.size_[1] == 4 and self.size_[2] == 4)
 	local r = math.rad(degrees)
 	local l = math.sqrt(x*x + y*y + z*z)
@@ -975,7 +990,15 @@ function matrix_ffi:rotate(degrees,x,y,z)
 	self.ptr[15] = 1
 	return self
 end
-function matrix_ffi:scale(x,y,z)
+-- TODO optimize the in-place apply instead of this slow crap:
+function matrix_ffi:applyRotate(...)
+	return self:copy(self * matrix_ffi{4,4}:zeros():setRotate(...))
+end
+
+function matrix_ffi:setScale(x,y,z)
+	x = x or 1
+	y = y or 1
+	z = z or 1
 	assert(#self.size_ == 2 and self.size_[1] == 4 and self.size_[2] == 4)
 	self.ptr[0] = x
 	self.ptr[1] = 0
@@ -995,7 +1018,15 @@ function matrix_ffi:scale(x,y,z)
 	self.ptr[15] = 1
 	return self
 end
-function matrix_ffi:translate(x,y,z)
+-- TODO optimize the in-place apply instead of this slow crap:
+function matrix_ffi:applyScale(...)
+	return self:copy(self * matrix_ffi{4,4}:zeros():setScale(...))
+end
+
+function matrix_ffi:setTranslate(x,y,z)
+	x = x or 0
+	y = y or 0
+	z = z or 0
 	assert(#self.size_ == 2 and self.size_[1] == 4 and self.size_[2] == 4)
 	self.ptr[0] = 1
 	self.ptr[4] = 0
@@ -1015,6 +1046,12 @@ function matrix_ffi:translate(x,y,z)
 	self.ptr[15] = 1
 	return self
 end
+-- TODO optimize the in-place apply instead of this slow crap:
+function matrix_ffi:applyTranslate(...)
+	return self:copy(self * matrix_ffi{4,4}:zeros():setTranslate(...))
+end
+
+--[[ optimize the :apply and this isn't needed anymore right?
 function matrix_ffi:translateMultScale(x,y,z,sx,sy,sz)
 	assert(#self.size_ == 2 and self.size_[1] == 4 and self.size_[2] == 4)
 	self.ptr[0] = sx
@@ -1035,5 +1072,6 @@ function matrix_ffi:translateMultScale(x,y,z,sx,sy,sz)
 	self.ptr[15] = 1
 	return self
 end
+--]]
 
 return matrix_ffi
