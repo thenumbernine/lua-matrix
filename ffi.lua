@@ -859,9 +859,10 @@ local ident = matrix_ffi({4,4}, 'float'):lambda(function(i,j)
 	return i==j and 1 or 0
 end)
 
--- optimized
+-- optimized ... default mul of arbitrary-rank inner-product is verrrry slow
 function matrix_ffi:mul4x4(a,b)
-	-- assert self isn't the table a or b, or else this will mess up
+	assert(#self.size_ == 2 and self.size_[1] == 4 and self.size_[2] == 4)
+	-- also assert self isn't the table a or b, or else this will mess up
 	self.ptr[0 + 4 * 0] = 0 + a.ptr[0 + 4 * 0] * b.ptr[0 + 4 * 0] + a.ptr[0 + 4 * 1] * b.ptr[1 + 4 * 0] + a.ptr[0 + 4 * 2] * b.ptr[2 + 4 * 0] + a.ptr[0 + 4 * 3] * b.ptr[3 + 4 * 0]
 	self.ptr[0 + 4 * 1] = 0 + a.ptr[0 + 4 * 0] * b.ptr[0 + 4 * 1] + a.ptr[0 + 4 * 1] * b.ptr[1 + 4 * 1] + a.ptr[0 + 4 * 2] * b.ptr[2 + 4 * 1] + a.ptr[0 + 4 * 3] * b.ptr[3 + 4 * 1]
 	self.ptr[0 + 4 * 2] = 0 + a.ptr[0 + 4 * 0] * b.ptr[0 + 4 * 2] + a.ptr[0 + 4 * 1] * b.ptr[1 + 4 * 2] + a.ptr[0 + 4 * 2] * b.ptr[2 + 4 * 2] + a.ptr[0 + 4 * 3] * b.ptr[3 + 4 * 2]
@@ -886,18 +887,21 @@ function matrix_ffi:setIdent()
 end
 function matrix_ffi:setOrtho(l,r,b,t,n,f)
 	assert(#self.size_ == 2 and self.size_[1] == 4 and self.size_[2] == 4)
-	self.ptr[0] = 2 / (r - l)
+	local invdx = 1 / (r - l)
+	local invdy = 1 / (t - b)
+	local invdz = 1 / (f - n)
+	self.ptr[0] = 2 * invdx
 	self.ptr[4] = 0
 	self.ptr[8] = 0
-	self.ptr[12] = -(r + l) / (r - l)
+	self.ptr[12] = -(r + l) * invdx
 	self.ptr[1] = 0
-	self.ptr[5] = 2 / (t - b)
+	self.ptr[5] = 2 * invdy
 	self.ptr[9] = 0
-	self.ptr[13] = -(t + b) / (t - b)
+	self.ptr[13] = -(t + b) * invdy
 	self.ptr[2] = 0
 	self.ptr[6] = 0
-	self.ptr[10] = -2 / (f - n)
-	self.ptr[14] = -(f + n) / (f - n)
+	self.ptr[10] = -2 * invdz
+	self.ptr[14] = -(f + n) * invdz
 	self.ptr[3] = 0
 	self.ptr[7] = 0
 	self.ptr[11] = 0
@@ -906,38 +910,31 @@ function matrix_ffi:setOrtho(l,r,b,t,n,f)
 end
 function matrix_ffi:applyOrtho(...)
 	assert(#self.size_ == 2 and self.size_[1] == 4 and self.size_[2] == 4)
-	local rhs00 = 2 / (r - l)
-	local rhs01 = 0
-	local rhs02 = 0
-	local rhs03 = -(r + l) / (r - l)
-	local rhs10 = 0
-	local rhs11 = 2 / (t - b)
-	local rhs12 = 0
-	local rhs13 = -(t + b) / (t - b)
-	local rhs20 = 0
-	local rhs21 = 0
-	local rhs22 = -2 / (f - n)
-	local rhs23 = -(f + n) / (f - n)
-	local rhs30 = 0
-	local rhs31 = 0
-	local rhs32 = 0
-	local rhs33 = 1
-	local n00 = 0 + self.ptr[0 + 4 * 0] * rhs00 + self.ptr[0 + 4 * 1] * rhs10 + self.ptr[0 + 4 * 2] * rhs20 + self.ptr[0 + 4 * 3] * rhs30
-	local n01 = 0 + self.ptr[0 + 4 * 0] * rhs01 + self.ptr[0 + 4 * 1] * rhs11 + self.ptr[0 + 4 * 2] * rhs21 + self.ptr[0 + 4 * 3] * rhs31
-	local n02 = 0 + self.ptr[0 + 4 * 0] * rhs02 + self.ptr[0 + 4 * 1] * rhs12 + self.ptr[0 + 4 * 2] * rhs22 + self.ptr[0 + 4 * 3] * rhs32
-	local n03 = 0 + self.ptr[0 + 4 * 0] * rhs03 + self.ptr[0 + 4 * 1] * rhs13 + self.ptr[0 + 4 * 2] * rhs23 + self.ptr[0 + 4 * 3] * rhs33
-	local n10 = 0 + self.ptr[1 + 4 * 0] * rhs00 + self.ptr[1 + 4 * 1] * rhs10 + self.ptr[1 + 4 * 2] * rhs20 + self.ptr[1 + 4 * 3] * rhs30
-	local n11 = 0 + self.ptr[1 + 4 * 0] * rhs01 + self.ptr[1 + 4 * 1] * rhs11 + self.ptr[1 + 4 * 2] * rhs21 + self.ptr[1 + 4 * 3] * rhs31
-	local n12 = 0 + self.ptr[1 + 4 * 0] * rhs02 + self.ptr[1 + 4 * 1] * rhs12 + self.ptr[1 + 4 * 2] * rhs22 + self.ptr[1 + 4 * 3] * rhs32
-	local n13 = 0 + self.ptr[1 + 4 * 0] * rhs03 + self.ptr[1 + 4 * 1] * rhs13 + self.ptr[1 + 4 * 2] * rhs23 + self.ptr[1 + 4 * 3] * rhs33
-	local n20 = 0 + self.ptr[2 + 4 * 0] * rhs00 + self.ptr[2 + 4 * 1] * rhs10 + self.ptr[2 + 4 * 2] * rhs20 + self.ptr[2 + 4 * 3] * rhs30
-	local n21 = 0 + self.ptr[2 + 4 * 0] * rhs01 + self.ptr[2 + 4 * 1] * rhs11 + self.ptr[2 + 4 * 2] * rhs21 + self.ptr[2 + 4 * 3] * rhs31
-	local n22 = 0 + self.ptr[2 + 4 * 0] * rhs02 + self.ptr[2 + 4 * 1] * rhs12 + self.ptr[2 + 4 * 2] * rhs22 + self.ptr[2 + 4 * 3] * rhs32
-	local n23 = 0 + self.ptr[2 + 4 * 0] * rhs03 + self.ptr[2 + 4 * 1] * rhs13 + self.ptr[2 + 4 * 2] * rhs23 + self.ptr[2 + 4 * 3] * rhs33
-	local n30 = 0 + self.ptr[3 + 4 * 0] * rhs00 + self.ptr[3 + 4 * 1] * rhs10 + self.ptr[3 + 4 * 2] * rhs20 + self.ptr[3 + 4 * 3] * rhs30
-	local n31 = 0 + self.ptr[3 + 4 * 0] * rhs01 + self.ptr[3 + 4 * 1] * rhs11 + self.ptr[3 + 4 * 2] * rhs21 + self.ptr[3 + 4 * 3] * rhs31
-	local n32 = 0 + self.ptr[3 + 4 * 0] * rhs02 + self.ptr[3 + 4 * 1] * rhs12 + self.ptr[3 + 4 * 2] * rhs22 + self.ptr[3 + 4 * 3] * rhs32
-	local n33 = 0 + self.ptr[3 + 4 * 0] * rhs03 + self.ptr[3 + 4 * 1] * rhs13 + self.ptr[3 + 4 * 2] * rhs23 + self.ptr[3 + 4 * 3] * rhs33
+	local invdx = 1 / (r - l)
+	local invdy = 1 / (t - b)
+	local invdz = 1 / (f - n)
+	local rhs00 = 2 * invdx
+	local rhs03 = -(r + l) * invdx
+	local rhs11 = 2 * invdy
+	local rhs13 = -(t + b) * invdy
+	local rhs22 = -2 / dz
+	local rhs23 = -(f + n) * invdz
+	local n00 = self.ptr[0 + 4 * 0] * rhs00
+	local n01 = self.ptr[0 + 4 * 1] * rhs11
+	local n02 = self.ptr[0 + 4 * 2] * rhs22
+	local n03 = self.ptr[0 + 4 * 0] * rhs03 + self.ptr[0 + 4 * 1] * rhs13 + self.ptr[0 + 4 * 2] * rhs23 + self.ptr[0 + 4 * 3]
+	local n10 = self.ptr[1 + 4 * 0] * rhs00
+	local n11 = self.ptr[1 + 4 * 1] * rhs11
+	local n12 = self.ptr[1 + 4 * 2] * rhs22
+	local n13 = self.ptr[1 + 4 * 0] * rhs03 + self.ptr[1 + 4 * 1] * rhs13 + self.ptr[1 + 4 * 2] * rhs23 + self.ptr[1 + 4 * 3]
+	local n20 = self.ptr[2 + 4 * 0] * rhs00
+	local n21 = self.ptr[2 + 4 * 1] * rhs11
+	local n22 = self.ptr[2 + 4 * 2] * rhs22
+	local n23 = self.ptr[2 + 4 * 0] * rhs03 + self.ptr[2 + 4 * 1] * rhs13 + self.ptr[2 + 4 * 2] * rhs23 + self.ptr[2 + 4 * 3]
+	local n30 = self.ptr[3 + 4 * 0] * rhs00
+	local n31 = self.ptr[3 + 4 * 1] * rhs11
+	local n32 = self.ptr[3 + 4 * 2] * rhs22
+	local n33 = self.ptr[3 + 4 * 0] * rhs03 + self.ptr[3 + 4 * 1] * rhs13 + self.ptr[3 + 4 * 2] * rhs23 + self.ptr[3 + 4 * 3]
 	self.ptr[0 + 4 * 0] = n00
 	self.ptr[0 + 4 * 1] = n01
 	self.ptr[0 + 4 * 2] = n02
