@@ -681,7 +681,7 @@ for the sake of a 3x3 matrix-exponent
 https://www.ibm.com/docs/en/essl/6.2?topic=llss-sgesvd-dgesvd-cgesvd-zgesvd-sgesdd-dgesdd-cgesdd-zgesdd-singular-value-decomposition-general-matrix
 --]]
 function matrix_ffi.svd(A)
-	local lapacke = require 'ffi.lapacke'
+	local lapacke = require 'ffi.req' 'lapacke'
 	A = matrix_ffi(A)	-- don't modify original
 --print('A.ctype', A.ctype)
 	local size = A:size()
@@ -721,7 +721,7 @@ end
 
 -- Avr = λBvr
 function matrix_ffi.eig(A, B)
-	local lapacke = require 'ffi.lapacke'
+	local lapacke = require 'ffi.req' 'lapacke'
 	A = matrix_ffi(A)	-- don't modify original
 	local eigName = getLapackeNameForType(A.ctype, 'ggev')
 	local size = A:size()
@@ -811,7 +811,7 @@ function matrix_ffi.inv(A)
 		return A
 	end
 
-	local lapacke = require 'ffi.lapacke'
+	local lapacke = require 'ffi.req' 'lapacke'
 	local getrfName = getLapackeNameForType(A.ctype, 'getrf')
 	lapacke[getrfName](
 		lapacke.LAPACK_COL_MAJOR,	-- int matrix_layout,
