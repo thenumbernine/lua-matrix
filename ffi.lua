@@ -882,6 +882,16 @@ function matrix_ffi:mul4x4(a,b)
 	return self
 end
 
+-- another optimized mul - this for vectors
+function matrix_ffi:mul4x4v4(x,y,z,w)
+	w = w or 1
+	return
+		self.ptr[0] * x + self.ptr[4] * y + self.ptr[8] * z + self.ptr[12] * w,
+		self.ptr[1] * x + self.ptr[5] * y + self.ptr[9] * z + self.ptr[13] * w,
+		self.ptr[2] * x + self.ptr[6] * y + self.ptr[10] * z + self.ptr[14] * w,
+		self.ptr[3] * x + self.ptr[7] * y + self.ptr[11] * z + self.ptr[15] * w
+end
+
 function matrix_ffi:setIdent()
 	return self:copy(ident)
 end
