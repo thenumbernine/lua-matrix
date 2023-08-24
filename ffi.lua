@@ -1068,8 +1068,6 @@ function matrix_ffi:setRotate(radians,x,y,z)
 	return self
 end
 function matrix_ffi:applyRotate(radians,x,y,z)
-	--return self:copy(self * matrix_ffi{4,4}:zeros():setRotate(...))
-
 	local l = math.sqrt(x*x + y*y + z*z)
 	if l < 1e-20 then
 		x=1
@@ -1120,6 +1118,8 @@ function matrix_ffi:applyRotate(radians,x,y,z)
 	self.ptr[9] = a1 * b8 + a5 * b9 + a9 * b10
 	self.ptr[10] = a2 * b8 + a6 * b9 + a10 * b10
 	self.ptr[11] = a3 * b8 + a7 * b9 + a11 * b10
+
+	return self
 end
 
 function matrix_ffi:setScale(x,y,z)
