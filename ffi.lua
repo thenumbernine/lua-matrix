@@ -1033,6 +1033,7 @@ function matrix_ffi:applyLookAt(...)
 	return self:copy(self * matrix_ffi{4,4}:zeros():setLookAt(...))
 end
 
+-- TODO radians, not degrees
 function matrix_ffi:setRotate(degrees,x,y,z)
 	assert(#self.size_ == 2 and self.size_[1] == 4 and self.size_[2] == 4)
 	local r = math.rad(degrees)
@@ -1068,9 +1069,60 @@ function matrix_ffi:setRotate(degrees,x,y,z)
 	self.ptr[15] = 1
 	return self
 end
--- TODO optimize the in-place apply instead of this slow crap:
-function matrix_ffi:applyRotate(...)
-	return self:copy(self * matrix_ffi{4,4}:zeros():setRotate(...))
+function matrix_ffi:applyRotate(degrees,x,y,z)
+	--return self:copy(self * matrix_ffi{4,4}:zeros():setRotate(...))
+
+	local r = math.rad(degrees)
+	local l = math.sqrt(x*x + y*y + z*z)
+	if l < 1e-20 then
+		x=1
+		y=0
+		z=0
+	else
+		local il = 1/l
+		x=x*il
+		y=y*il
+		z=z*il
+	end
+	local c = math.cos(r)
+	local s = math.sin(r)
+	local ic = 1 - c
+	
+	local a0 = self.ptr[0]
+	local a1 = self.ptr[1]
+	local a2 = self.ptr[2]
+	local a3 = self.ptr[3]
+	local a4 = self.ptr[4]
+	local a5 = self.ptr[5]
+	local a6 = self.ptr[6]
+	local a7 = self.ptr[7]
+	local a8 = self.ptr[8]
+	local a9 = self.ptr[9]
+	local a10 = self.ptr[10]
+	local a11 = self.ptr[11]
+
+	local b0 = c + x*x*ic
+	local b4 = x*y*ic - z*s
+	local b8 = x*z*ic + y*s
+	local b1 = x*y*ic + z*s
+	local b5 = c + y*y*ic
+	local b9 = y*z*ic - x*s
+	local b2 = x*z*ic - y*s
+	local b6 = y*z*ic + x*s
+	local b10 = c + z*z*ic
+	
+	self.ptr[0] = a0 * b0 + a4 * b1 + a8 * b2
+	self.ptr[1] = a1 * b0 + a5 * b1 + a9 * b2
+	self.ptr[2] = a2 * b0 + a6 * b1 + a10 * b2
+	self.ptr[3] = a3 * b0 + a7 * b1 + a11 * b2
+	self.ptr[4] = a0 * b4 + a4 * b5 + a8 * b6
+	self.ptr[5] = a1 * b4 + a5 * b5 + a9 * b6
+	self.ptr[6] = a2 * b4 + a6 * b5 + a10 * b6
+	self.ptr[7] = a3 * b4 + a7 * b5 + a11 * b6
+	self.ptr[8] = a0 * b8 + a4 * b9 + a8 * b10
+	self.ptr[9] = a1 * b8 + a5 * b9 + a9 * b10
+	self.ptr[10] = a2 * b8 + a6 * b9 + a10 * b10
+	self.ptr[11] = a3 * b8 + a7 * b9 + a11 * b10
 end
 
 function matrix_ffi:setScale(x,y,z)
@@ -1125,20 +1177,20 @@ function matrix_ffi:setTranslate(x,y,z)
 	z = z or 0
 	assert(#self.size_ == 2 and self.size_[1] == 4 and self.size_[2] == 4)
 	self.ptr[0] = 1
-	self.ptr[4] = 0
-	self.ptr[8] = 0
-	self.ptr[12] = x
 	self.ptr[1] = 0
-	self.ptr[5] = 1
-	self.ptr[9] = 0
-	self.ptr[13] = y
 	self.ptr[2] = 0
-	self.ptr[6] = 0
-	self.ptr[10] = 1
-	self.ptr[14] = z
 	self.ptr[3] = 0
+	self.ptr[4] = 0
+	self.ptr[5] = 1
+	self.ptr[6] = 0
 	self.ptr[7] = 0
+	self.ptr[8] = 0
+	self.ptr[9] = 0
+	self.ptr[10] = 1
 	self.ptr[11] = 0
+	self.ptr[12] = x
+	self.ptr[13] = y
+	self.ptr[14] = z
 	self.ptr[15] = 1
 	return self
 end
