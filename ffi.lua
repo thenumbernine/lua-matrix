@@ -1033,10 +1033,8 @@ function matrix_ffi:applyLookAt(...)
 	return self:copy(self * matrix_ffi{4,4}:zeros():setLookAt(...))
 end
 
--- TODO radians, not degrees
-function matrix_ffi:setRotate(degrees,x,y,z)
+function matrix_ffi:setRotate(radians,x,y,z)
 	assert(#self.size_ == 2 and self.size_[1] == 4 and self.size_[2] == 4)
-	local r = math.rad(degrees)
 	local l = math.sqrt(x*x + y*y + z*z)
 	if l < 1e-20 then
 		x=1
@@ -1048,8 +1046,8 @@ function matrix_ffi:setRotate(degrees,x,y,z)
 		y=y*il
 		z=z*il
 	end
-	local c = math.cos(r)
-	local s = math.sin(r)
+	local c = math.cos(radians)
+	local s = math.sin(radians)
 	local ic = 1 - c
 	self.ptr[0] = c + x*x*ic
 	self.ptr[4] = x*y*ic - z*s
@@ -1069,10 +1067,9 @@ function matrix_ffi:setRotate(degrees,x,y,z)
 	self.ptr[15] = 1
 	return self
 end
-function matrix_ffi:applyRotate(degrees,x,y,z)
+function matrix_ffi:applyRotate(radians,x,y,z)
 	--return self:copy(self * matrix_ffi{4,4}:zeros():setRotate(...))
 
-	local r = math.rad(degrees)
 	local l = math.sqrt(x*x + y*y + z*z)
 	if l < 1e-20 then
 		x=1
@@ -1084,8 +1081,8 @@ function matrix_ffi:applyRotate(degrees,x,y,z)
 		y=y*il
 		z=z*il
 	end
-	local c = math.cos(r)
-	local s = math.sin(r)
+	local c = math.cos(radians)
+	local s = math.sin(radians)
 	local ic = 1 - c
 	
 	local a0 = self.ptr[0]
