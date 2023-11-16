@@ -105,6 +105,10 @@ function matrix.eye(size)
 	end)
 end
 
+local function isScalar(x)
+	return not matrix:isa(x)
+end
+
 --[[
 should the matrix {} have size return {} or {0} ?  technically the latter implies a vector of size 0 (whereas {0,0} would be a matrix of size 0,0)
 and the matrix {} would not necessarily be a vector, let alone anything
@@ -113,27 +117,35 @@ I wonder what numpy does
 what about nested nils? {1,2,3} is of size {3}, {{1},{2},{3}} is of size {3,1}, so  {{}, {}, {}} should be of size {3,0}
  however if {} had size {} then {{}, {}, {}} would have size of just {3}, which is ambiguous
 therefore {} should return size {0}
+
+TODO
+Now I'm thinking maybe I should just rely on matrices to all have their metatables set up,
+and only use :size() insted of matrix.size(...)
+That way I can allow for table-based objects (bignumber, symmath, etc) as matrix values.
 --]]
 function matrix:size(sizes, offset)
 	offset = offset or 1
 	sizes = sizes or matrix{}
 	sizes[offset] = #self
-	local typeSelf1 = type(self[1])
-	if typeSelf1 == 'number' or typeSelf1 == 'string' or typeSelf1 == 'cdata' then
+	if isScalar(self[1]) then
 		for i=2,#self do
-			local typeSelfI = type(self[i])
-			assert(typeSelfI == 'number' or typeSelfI == 'string' or typeSelfI == 'cdata', "matrix had a bad dimension")
+			assert(isScalar(self[i]), "matrix had a bad dimension")
 		end
 	-- else if self[1] is something that can be indexed
 	-- TODO what if it is cdata?  or a table?
 	-- it could either be something indended as a value or something intended as iteration
 	-- how to determine which is which?
 	-- the most flexible way might be to make this test matrix:isa(self[1]) ...
+	--[[
 	elseif self[1] ~= nil then
+	--]]
+	-- [[
+	else
+	--]]
 		for i=2,#self do
 			assert(#self[1] == #self[i], "matrix had a bad dimension")
 		end
-		self[1]:size(sizes,offset+1)
+		self[1]:size(sizes, offset+1)
 	end
 	return sizes
 end
@@ -254,7 +266,7 @@ end
 
 function matrix.__add(a,b)
 	local c = matrix(a)
-	if type(b) == 'number' then
+	if isScalar(b) then
 		for i=1,#c do
 			c[i] = c[i] + b
 		end
@@ -268,7 +280,7 @@ end
 
 function matrix.__sub(a,b)
 	local c = matrix(a)
-	if type(b) == 'number' then
+	if isScalar(b) then
 		for i=1,#c do
 			c[i] = c[i] - b
 		end
@@ -305,8 +317,8 @@ function matrix:iter()
 end
 
 function matrix.scale(a,s)
-	if type(a) == 'number' then return a * s end
-	assert(type(s) == 'number')
+	if isScalar(a) then return a * s end
+	assert(isScalar(s))
 	a = matrix(a)
 	for i in a:iter() do
 		a[i] = a[i] * s
@@ -317,8 +329,8 @@ end
 -- non-metatable version will be matrix mul
 -- assumes the innermost dim of a equals the outermost dim of b
 function matrix.outer(a,b)
-	if type(a) == 'number' then
-		if type(b) == 'number' then return a * b end
+	if isScalar(a) then
+		if isScalar(b) then return a * b end
 		return b:outer(a)
 	end
 	a = matrix(a)
@@ -334,10 +346,10 @@ metric = metric to perform inner product, default = identity
 aj,bj = degrees to contract, default = last of a, first of b
 --]]
 function matrix.inner(a,b,metric,aj,bj)
-	if type(a) == 'number' then
-		if type(b) == 'number' then return a * b end
+	if isScalar(a) then
+		if isScalar(b) then return a * b end
 		return b:scale(a)
-	elseif type(b) == 'number' then
+	elseif isScalar(b) then
 		return a:scale(b)
 	end
 	aj = aj or a:degree()
@@ -393,7 +405,7 @@ matrix.__mul = matrix.inner
 -- scalar division
 function matrix.__div(a,b)
 	assert(matrix:isa(a))
-	assert(type(b) == 'number')
+	assert(isScalar(b))
 	return matrix.lambda(a:size(), function(...)
 		return a(...) / b
 	end)
@@ -473,7 +485,7 @@ end
 
 function matrix:prod()
 	local t = type(self[1])
-	if t ~= 'number' then
+	if not isScalar(t) then
 		error("got a bad type: "..t)
 	end
 	local prod = self[1]
@@ -486,7 +498,7 @@ end
 function matrix:min()
 	local x = matrix:isa(self[1]) and self[1]:min() or self[1]
 	for i=2,#self do
-		if type(self[i]) == 'number' then
+		if isScalar(self[i]) then
 			x = math.min(x, self[i])
 		else
 			x = math.min(x, self[i]:min())
@@ -498,7 +510,7 @@ end
 function matrix:max()
 	local x = matrix:isa(self[1]) and self[1]:max() or self[1]
 	for i=2,#self do
-		if type(self[i]) == 'number' then
+		if isScalar(self[i]) then
 			x = math.max(x, self[i])
 		else
 			x = math.max(x, self[i]:max())
