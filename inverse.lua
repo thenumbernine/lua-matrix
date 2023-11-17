@@ -1,4 +1,13 @@
 -- taken from my symmath matrix inverse
+local function isZero(x)
+	if type(x) == 'number' then return x == 0 end
+	return (x - 0):isZero()	-- bignumber hack ... hmm ... how to do this for everything ...
+end
+local function isOne(x)
+	if type(x) == 'number' then return x == 1 end
+	return (x - 1):isZero()	-- bignumber hack ... hmm ... how to do this for everything ...
+end
+
 return function(A, A_det, b)
 	local matrix = require 'matrix'
 	local dim = A:size()
@@ -27,7 +36,7 @@ return function(A, A_det, b)
 	if not b then
 		if m == 1 and n == 1 then
 			local A_11 = A[1][1]
-			if A_11 == 0 then
+			if isZero(A_11) then
 				return AInv, A, "determinant is zero"
 			end
 			local result = matrix{{1/A_11}}
@@ -35,7 +44,7 @@ return function(A, A_det, b)
 			return result, invdim:eye()
 		elseif m == 2 and n == 2 then
 			A_det = A_det or A:determinant()
-			if A_det ~= 0 then
+			if not isZero(A_det) then
 				local result = matrix{
 					{A[2][2], -A[1][2]},
 					{-A[2][1], A[1][1]}
@@ -48,7 +57,7 @@ return function(A, A_det, b)
 -- because right now this function does a few things: inverse, pseudoinverse, linear system solution
 		elseif m == 3 and n == 3 then
 			A_det = A_det or A:determinant()
-			if A_det ~= 0 then
+			if not isZero(A_det) then
 				-- transpose, +-+- sign stagger, for each element remove that row and column and
 				local result = matrix{
 					{A[2][2]*A[3][3]-A[2][3]*A[3][2], A[1][3]*A[3][2]-A[1][2]*A[3][3], A[1][2]*A[2][3]-A[1][3]*A[2][2]},
@@ -69,11 +78,11 @@ return function(A, A_det, b)
 	for i=1,min do
 		-- if we have a zero on the diagonal...
 		local found = true
-		if A[row][i] == 0 then
+		if isZero(A[row][i]) then
 			-- pivot with a row beneath this one
 			found = false
 			for j=row+1,m do
-				if A[j][i] ~= 0 then
+				if not isZero(A[j][i]) then
 					for k=1,n do
 						A[j][k], A[row][k] = A[row][k], A[j][k]
 					end
@@ -90,7 +99,7 @@ return function(A, A_det, b)
 			--return AInv, A, "couldn't find a row to pivot"
 		else
 			-- rescale diagonal
-			if A[row][i] ~= 1 then
+			if not isOne(A[row][i]) then
 				-- rescale column
 				local s = A[row][i]
 -- TODO verbose arg?
@@ -104,7 +113,7 @@ return function(A, A_det, b)
 			-- eliminate columns apart from diagonal
 			for j=1,m do
 				if j ~= row then
-					if A[j][i] ~= 0 then
+					if not isZero(A[j][i]) then
 						local s = A[j][i]
 						for k=1,n do
 							A[j][k] = A[j][k] - s * A[row][k]
@@ -125,7 +134,7 @@ return function(A, A_det, b)
 		-- and should be cut out?
 		for i=n+1,m do
 			for j=1,invdim[2] do
-				if AInv[i][j] ~= 0 then
+				if not isZero(AInv[i][j]) then
 					return AInv, A, "system is overconstrained"
 				end
 			end

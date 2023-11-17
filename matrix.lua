@@ -13,9 +13,13 @@ local matrix = class()
 matrix.index = _
 
 function matrix:init(t, ...)
-	if type(t) == 'table' then
+	if type(t) == 'table' 
+	and not t.isZero		-- cheap bignumber test
+	then
 		for i=1,#t do
-			if type(t[i]) == 'table' then
+			if type(t[i]) == 'table' 
+			and not t[i].isZero
+			then
 				self[i] = matrix(t[i])
 			else
 				self[i] = t[i]
@@ -227,7 +231,9 @@ function matrix:__call(i, ...)
 end
 
 function matrix:__index(i)
-	if type(i) ~= 'table' then return rawget(self,i) or rawget(matrix,i) end
+	if type(i) ~= 'table' then
+		return rawget(self,i) or rawget(matrix,i)
+	end
 	return self(table.unpack(i))
 end
 
@@ -321,7 +327,9 @@ function matrix.scale(a,s)
 	assert(isScalar(s))
 	a = matrix(a)
 	for i in a:iter() do
+		assert(isScalar(a[i]))
 		a[i] = a[i] * s
+		assert(isScalar(a[i]))
 	end
 	return a
 end
