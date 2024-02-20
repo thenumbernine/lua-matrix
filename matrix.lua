@@ -155,7 +155,6 @@ function matrix:size(sizes, offset)
 end
 
 --[[
-For matrix.ffi compat, since luajit is still 5.1 compat and doesn't have a __len overload operator
 matrix.ffi overloads __len aka # operator for the matrix first dimension size.
 
 Python uses 'len' as the size of an array / vector

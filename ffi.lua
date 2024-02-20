@@ -1,6 +1,5 @@
 -- my attempt at a ffi implementation of the matrix class
 -- take note, this relies on luajit
--- and luajit doesn't overload __len
 local ffi = require 'ffi'
 local class = require 'ext.class'
 local table = require 'ext.table'
@@ -308,6 +307,10 @@ function matrix_ffi:__newindex(i,v)
 	else
 		error("can only assign numbers or tables, not "..require 'ext.tolua'(v))
 	end
+end
+
+function matrix_ffi:__len()
+	return self:size()[1]
 end
 
 function matrix_ffi.__unm(a)
