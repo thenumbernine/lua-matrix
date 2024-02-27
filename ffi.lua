@@ -310,7 +310,7 @@ function matrix_ffi:__newindex(i,v)
 end
 
 function matrix_ffi:__len()
-	return self:size()[1]
+	return self.size_[1]
 end
 
 function matrix_ffi.__unm(a)
