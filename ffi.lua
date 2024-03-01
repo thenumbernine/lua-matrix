@@ -16,7 +16,7 @@ local matrix_lua = require 'matrix'
 local matrix_ffi = class()
 
 -- override this to specify a default for the ctor ctype parameter
-matrix_ffi.real = nil
+matrix_ffi.real = 'double'
 
 local function isnumber(x)
 	local xt = type(x)
@@ -77,7 +77,6 @@ function matrix_ffi:init(src, ctype, size)
 	self.ctype = ctype 			-- ctype arg
 		or (src and src.ctype) 	-- src ctype
 		or self.real 			-- default ctype
-		or 'double'				-- last case
 
 	-- if we're building a matrix with complex ctype ...
 	if self.ctype:lower():find'complex' then
@@ -133,10 +132,15 @@ function matrix_ffi.const(value, dims, ctype)
 end
 
 -- matches matrix_lua except the matrix ref
-function matrix_ffi.zeros(dims, ctype)
-	ctype = ctype or dims.ctype
-	assert(ctype == nil or type(ctype) == 'string')
-	return matrix_ffi.const(0, dims, ctype)
+function matrix_ffi.zeros(...)
+	if type((...)) == 'number' then
+		return matrix_ffi.const(0, {...})
+	else
+		local dims, ctype = ...
+		ctype = ctype or dims.ctype
+		assert(ctype == nil or type(ctype) == 'string')
+		return matrix_ffi.const(0, dims, ctype)
+	end
 end
 
 -- matches matrix_lua except the matrix ref
@@ -239,7 +243,32 @@ function matrix_ffi:__index(i)
 		if self:degree() == 1 then
 			return self.ptr[i-1]
 		else
+			--[[ read-only w/slicing ...
 			return self(i)
+			--]]
+			-- [[ readwrite, but only single-element at a time ...
+			if i < 1 or i > self.size_[1] then
+				error("got OOB index "..tostring(i)..", should be within 1 and "..tostring(self.size_[1]))
+			end
+			assert(1 <= i and i <= self.size_[1])
+			-- TODO this is all a copy of matrix_ffi:init
+			-- how about instead I work in this ptr as an arg in place of 'src' somehow ...
+			-- or a better TODO would be to just throw out this whole class and replace it with a pure-ffi class that only used 0-index access and didn't have any Lua tables
+			local m = setmetatable({}, matrix_ffi)
+			m.size_ = matrix_lua{select(2, table.unpack(self.size_))}
+			m.ctype = self.ctype or self.real
+			m.volume = self.size_:prod()
+			m.step = matrix_lua(m.size_)
+			m.step[1] = 1
+			for j=2,#m.size_ do
+				m.step[j] = m.step[j-1] * m.size_[j-1]
+			end
+			if m.ctype:lower():find'complex' then
+				requireComplex()
+			end
+			m.ptr = self.ptr + m.volume * (i-1)
+			--]]
+			return m
 		end
 	end
 	if type(i) ~= 'table' then
