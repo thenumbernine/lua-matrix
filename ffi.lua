@@ -37,7 +37,7 @@ end
 		in which case size can specify the size of the matrix
 		I really am only using it with matrix_ffi.zeros, not planning on it being public
 --]]
-function matrix_ffi:init(src, ctype, size)
+function matrix_ffi:init(src, ctype, size, rowmajor)
 	if type(src) == 'table'
 	and not matrix_ffi:isa(src)
 	then
@@ -67,11 +67,18 @@ function matrix_ffi:init(src, ctype, size)
 
 	self.volume = self.size_:prod()
 
+	self.rowmajor = rowmajor
 	self.step = matrix_lua(self.size_)
-	-- TODO make step optional row vs col major
-	self.step[1] = 1
-	for i=2,#self.size_ do
-		self.step[i] = self.step[i-1] * self.size_[i-1]
+	if rowmajor then
+		self.step[#self.size_] = 1
+		for i=#self.size_-1,1,-1 do
+			self.step[i] = self.step[i+1] * self.size_[i+1]
+		end
+	else
+		self.step[1] = 1
+		for i=2,#self.size_ do
+			self.step[i] = self.step[i-1] * self.size_[i-1]
+		end
 	end
 
 	self.ctype = ctype 			-- ctype arg
@@ -118,13 +125,13 @@ end
 
 -- sorry, for my matrix lib compat,
 -- you gotta set ctypes with matrix_ffi.real = whatever ctype
-function matrix_ffi.const(value, dims, ctype)
+function matrix_ffi.const(value, dims, ctype, ...)
 	ctype = ctype or dims.ctype
 	assert(type(dims) == 'table')
 	if not (ctype == nil or type(ctype) == 'string') then
 		error("got unknown ctype: "..require 'ext.tolua'(ctype))
 	end
-	local result = matrix_ffi(nil, ctype, matrix_ffi(dims))
+	local result = matrix_ffi(nil, ctype, matrix_ffi(dims), ...)
 	for i=0,result.volume-1 do
 		result.ptr[i] = value
 	end
@@ -139,7 +146,7 @@ function matrix_ffi.zeros(...)
 		local dims, ctype = ...
 		ctype = ctype or dims.ctype
 		assert(ctype == nil or type(ctype) == 'string')
-		return matrix_ffi.const(0, dims, ctype)
+		return matrix_ffi.const(0, dims, ctype, select(3, ...))
 	end
 end
 
@@ -243,31 +250,37 @@ function matrix_ffi:__index(i)
 		if self:degree() == 1 then
 			return self.ptr[i-1]
 		else
-			--[[ read-only w/slicing ...
-			return self(i)
-			--]]
 			-- [[ readwrite, but only single-element at a time ...
-			if i < 1 or i > self.size_[1] then
-				error("got OOB index "..tostring(i)..", should be within 1 and "..tostring(self.size_[1]))
-			end
-			assert(1 <= i and i <= self.size_[1])
-			-- TODO this is all a copy of matrix_ffi:init
-			-- how about instead I work in this ptr as an arg in place of 'src' somehow ...
-			-- or a better TODO would be to just throw out this whole class and replace it with a pure-ffi class that only used 0-index access and didn't have any Lua tables
-			local m = setmetatable({}, matrix_ffi)
-			m.size_ = matrix_lua{select(2, table.unpack(self.size_))}
-			m.ctype = self.ctype or self.real
-			m.volume = self.size_:prod()
-			m.step = matrix_lua(m.size_)
-			m.step[1] = 1
-			for j=2,#m.size_ do
-				m.step[j] = m.step[j-1] * m.size_[j-1]
-			end
-			if m.ctype:lower():find'complex' then
-				requireComplex()
-			end
-			m.ptr = self.ptr + m.volume * (i-1)
+			if self.rowmajor then
+				if i < 1 or i > self.size_[1] then
+					error("got OOB index "..tostring(i)..", should be within 1 and "..tostring(self.size_[1]))
+				end
+				assert(1 <= i and i <= self.size_[1])
+				-- TODO this is all a copy of matrix_ffi:init
+				-- how about instead I work in this ptr as an arg in place of 'src' somehow ...
+				-- or a better TODO would be to just throw out this whole class and replace it with a pure-ffi class that only used 0-index access and didn't have any Lua tables
+				local m = setmetatable({}, matrix_ffi)
+				m.size_ = matrix_lua{select(2, table.unpack(self.size_))}
+				m.ctype = self.ctype or self.real
+				m.volume = self.size_:prod()
+	-- TODO step should be 1 for the j'th and big for 1st
+	-- otherwise slicing like this won't work ...
+				m.step = matrix_lua(m.size_)
+				m.step[#m.size_] = 1
+				for j=#m.size_-1,1,-1 do
+					m.step[j] = m.step[j+1] * m.size_[j+1]
+				end
+				m.rowmajor = true
+				if m.ctype:lower():find'complex' then
+					requireComplex()
+				end
+				m.ptr = self.ptr + m.volume * (i-1)
 			--]]
+			else
+			-- [[ read-only w/slicing ...
+				return self(i)
+			--]]
+			end
 			return m
 		end
 	end
