@@ -158,7 +158,7 @@ end
 
 -- could match matrix_lua except the matrix ref, if I copied it back over, but it might be slightly slower?
 function matrix_ffi.lambda(size, f, result, ctype, ...)
-	--[[ this might be compatible with matrix.lambda, but it is slooow 
+	--[[ this might be compatible with matrix.lambda
 	size = matrix_ffi:isa(size)
 		and size
 		or matrix_ffi(size)
@@ -175,7 +175,16 @@ function matrix_ffi.lambda(size, f, result, ctype, ...)
 	return result
 	--]]
 	-- [[
-	result = result or matrix_ffi(nil, ctype, size, ...)
+	ctype = ctype or size.ctype
+	-- if rowmajor wasn't provided then use size's rowmajor
+	if select('#', ...) == 0 then
+		local rowmajor = size.rowmajor
+		result = result or matrix_ffi(nil, ctype, size, rowmajor)
+	else
+		local rowmajor = ...
+		result = result or matrix_ffi(nil, ctype, size, rowmajor)
+	end
+	local rowmajor = result.rowmajor
 	local rptr = result.ptr
 	if #size == 1 then
 		for i=0,size[1]-1 do
@@ -185,11 +194,19 @@ function matrix_ffi.lambda(size, f, result, ctype, ...)
 		local w = result.size_[1]
 		local h = result.size_[2]
 		local k = 0
-		for i=0,h-1 do
+		if rowmajor then
 			for j=0,w-1 do
-				-- the callback is incredibly slow -- slower than the same code in pure-lua
-				rptr[k] = f(i+1, j+1)
-				k = k + 1
+				for i=0,h-1 do
+					rptr[k] = f(i+1, j+1)
+					k = k + 1
+				end
+			end
+		else
+			for i=0,h-1 do
+				for j=0,w-1 do
+					rptr[k] = f(i+1, j+1)
+					k = k + 1
+				end
 			end
 		end
 	else
