@@ -3,6 +3,7 @@
 local ffi = require 'ffi'
 local class = require 'ext.class'
 local table = require 'ext.table'
+local asserteq = require 'ext.assert'.eq
 
 local complex
 local function requireComplex()
@@ -98,7 +99,7 @@ function matrix_ffi:init(src, ctype, size, rowmajor)
 	self.ptr = ffi.new(self.ctype..'[?]', math.max(self.volume,1))
 
 	if matrix_ffi:isa(src) then
-		if src.type == self.ctype then
+		if src.ctype == self.ctype then
 			ffi.copy(self.ptr, src.ptr, ffi.sizeof(self.ctype) * self.volume)
 		else
 			local mn = math.min(self.volume, src.volume)
@@ -156,7 +157,8 @@ function matrix_ffi.ones(dims, ctype)
 end
 
 -- could match matrix_lua except the matrix ref, if I copied it back over, but it might be slightly slower?
-function matrix_ffi.lambda(size, f, result, ctype)
+function matrix_ffi.lambda(size, f, result, ctype, ...)
+	--[[ this might be compatible with matrix.lambda, but it is slooow 
 	size = matrix_ffi:isa(size)
 		and size
 		or matrix_ffi(size)
@@ -171,6 +173,32 @@ function matrix_ffi.lambda(size, f, result, ctype)
 		result[i] = x
 	end
 	return result
+	--]]
+	-- [[
+	result = result or matrix_ffi(nil, ctype, size, ...)
+	local rptr = result.ptr
+	if #size == 1 then
+		for i=0,size[1]-1 do
+			rptr[i] = f(i+1)
+		end
+	elseif #size == 2 then
+		local w = result.size_[1]
+		local h = result.size_[2]
+		local k = 0
+		for i=0,h-1 do
+			for j=0,w-1 do
+				-- the callback is incredibly slow -- slower than the same code in pure-lua
+				rptr[k] = f(i+1, j+1)
+				k = k + 1
+			end
+		end
+	else
+		for i in result:iter() do
+			result[i] = assert(f(i:unpack()))
+		end
+	end
+	return result
+	--]]
 end
 
 -- returns the matrix size
@@ -429,26 +457,142 @@ end
 
 
 -- matches matrix_lua except matrix ref
-function matrix_ffi.scale(a,s)
+-- TODO make an in-place option
+function matrix_ffi.scale(a, s, result)
 	if isnumber(a) then return a * s end
 	assert(isnumber(s))
-	a = matrix_ffi(a)
+	result = result or matrix_ffi(a)
 	for i in a:iter() do
-		a[i] = a[i] * s
+		result[i] = a[i] * s
 	end
-	return a
+	return result
 end
 
 -- could match matrix_lua except matrix ref if I copied it back
 function matrix_ffi.inner(a,b,metric,aj,bj, c)
 	if isnumber(a) then
 		if isnumber(b) then return a * b end
-		return b:scale(a)
+		return b:scale(a, c)
 	elseif isnumber(b) then
-		return a:scale(b)
+		return a:scale(b, c)
 	end
-	aj = aj or a:degree()
-	bj = bj or 1
+	local dega = a:degree()
+	local degb = b:degree()
+	if aj then
+		assert(1 <= aj and aj <= dega)
+	else
+		aj = dega
+	end
+	if bj then
+		assert(1 <= bj and bj <= degb)
+	else
+		bj = 1
+	end
+
+	-- some optimized pathways
+	if dega == 1 then
+		local n = a.size_[1]
+		if degb == 1 then
+			-- inner product	
+			-- this is gonna break compat with matrix_lua/matrix_ffi mul
+			-- but I don't want to create another temp obj ...
+			asserteq(n, b.size_[1])
+			local sum = 0
+			for i=0,n-1 do
+				sum = sum + a.ptr[i] * b.ptr[i]
+			end
+			return sum
+		elseif degb == 2 then
+			asserteq(n, b.size_[bj])
+			local m = b.size_[3-bj]
+			-- transposed mul
+			-- should the result be rowmajor?
+			-- what a mess ... I should pick a single standard and stick to it
+			-- and for slicing sake it should be row-major
+			if c then
+				asserteq(c:degree(), 1)
+				asserteq(c.size_[1], m)
+			else
+				c = matrix_ffi(nil, a.ctype, {m}, a.rowmajor)
+			end
+			if (bj == 1 and not b.rowmajor) then
+				-- bj == 1:
+				-- n == b's height, i.e. 1st dim
+				-- m == b's width, i.e. 2nd dim
+				-- c_i = a_j b_ji = transpose-mul or row-vector mul
+				-- bj == 2:
+				-- n == b's width, i.e. 2nd dim
+				-- m == b's height, i.e. 1st dim
+				-- c_i = b_ij a_j
+				for i=0,m-1 do
+					local sum = 0
+					for j=0,n-1 do
+						sum = sum + a.ptr[i] * b.ptr[j + m * i]
+					end
+					c.ptr[i] = sum
+				end
+			else
+				for i=0,m-1 do
+					local sum = 0
+					for j=0,n-1 do
+						sum = sum + a.ptr[i] * b.ptr[j * m + i]
+					end
+					c.ptr[i] = sum
+				end			
+			end
+			return c
+		end
+	elseif dega == 2 then
+		if degb == 1 then
+			-- TODO swap a and b and swap aj and bj
+		elseif degb == 2 then
+			if aj == 2 and bj == 1 then
+				local a1, a2 = table.unpack(a.size_)
+				local b1, b2 = table.unpack(a.size_)
+				asserteq(a2, b1)
+				local c1 = a1
+				local c2 = b2
+				if c then
+					asserteq(c:degree(), 2)
+					asserteq(c.size_[1], c1)
+					asserteq(c.size_[2], c2)
+				else
+					c = matrix_ffi(nil, a.ctype, {c1, c2}, a.rowmajor)
+				end
+				
+				if a.rowmajor
+				and b.rowmajor
+				then
+					for i=0,a1-1 do
+						for j=0,b2-1 do
+							local sum = 0
+							for k=0,a2-1 do
+								sum = sum + a.ptr[i * a2 + k] * b.ptr[k * b2 + j]
+							end
+							c.ptr[i * c2 + j] = sum
+						end
+					end
+					return c
+				
+				elseif not a.rowmajor
+				and not b.rowmajor
+				then
+					for i=0,a1-1 do
+						for j=0,b2-1 do
+							local sum = 0
+							for k=0,a2-1 do
+								sum = sum + a.ptr[i + a1 * k] * b.ptr[k + b1 * j]
+							end
+							c.ptr[i * c2 + j] = sum
+						end
+					end
+					return c			
+				end
+			end
+			-- TODO same
+		end
+	end
+
 	local sa = table{a:size():unpack()}
 	local sb = table{b:size():unpack()}
 	local ssa = table(sa)
@@ -900,9 +1044,12 @@ end
 
 -- glsl functions:
 
-local ident = matrix_ffi({4,4}, 'float'):lambda(function(i,j)
-	return i==j and 1 or 0
-end)
+local ident = matrix_ffi({
+	{1,0,0,0},
+	{0,1,0,0},
+	{0,0,1,0},
+	{0,0,0,1},
+}, 'float')
 
 -- optimized ... default mul of arbitrary-rank inner-product is verrrry slow
 function matrix_ffi:mul4x4(a,b)
