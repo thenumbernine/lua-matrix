@@ -290,7 +290,7 @@ function matrix_ffi:__index(i)
 				local m = setmetatable({}, matrix_ffi)
 				m.size_ = matrix_lua{select(2, table.unpack(self.size_))}
 				m.ctype = self.ctype or self.real
-				m.volume = self.size_:prod()
+				m.volume = m.size_:prod()
 	-- TODO step should be 1 for the j'th and big for 1st
 	-- otherwise slicing like this won't work ...
 				m.step = matrix_lua(m.size_)
@@ -302,7 +302,10 @@ function matrix_ffi:__index(i)
 				if m.ctype:lower():find'complex' then
 					requireComplex()
 				end
+--DEBUG: assert(m.volume <= self.volume)
+--DEBUG: assert(0 <= m.volume * (i-1) and m.volume * (i-1) < self.volume)
 				m.ptr = self.ptr + m.volume * (i-1)
+				return m
 			--]]
 			else
 			-- [[ read-only w/slicing ...
