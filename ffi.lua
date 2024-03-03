@@ -355,7 +355,13 @@ function matrix_ffi:__newindex(i,v)
 			i = matrix_lua(i)
 		end
 	elseif type(i) == 'number' then
-		i = matrix_lua{i}
+		if self:degree() == 1 then
+			assert(1 <= i and i <= self.size_[1])
+			self.ptr[i-1] = v
+			return
+		else
+			i = matrix_lua{i}
+		end
 	else
 		rawset(self,i,v)
 		return
