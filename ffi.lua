@@ -68,6 +68,7 @@ function matrix_ffi:init(src, ctype, size, rowmajor)
 
 	self.volume = self.size_:prod()
 
+	-- TODO make rowmajor default.  make colmajor optional? for glsl's sake? or just nah?
 	self.rowmajor = rowmajor
 	self.step = matrix_lua(self.size_)
 	if rowmajor then
