@@ -211,6 +211,7 @@ function matrix_ffi.lambda(size, f, result, ctype, ...)
 			end
 		end
 	else
+		-- sloooow
 		for i in result:iter() do
 			result[i] = assert(f(i:unpack()))
 		end
