@@ -17,6 +17,7 @@ local matrix_lua = require 'matrix'
 local matrix_ffi = class()
 
 -- override this to specify a default for the ctor ctype parameter
+-- TODO just call this .ctype and use it as a fallback field
 matrix_ffi.real = 'double'
 
 local function isnumber(x)
