@@ -680,4 +680,7 @@ end
 -- where did I get this as a function name?
 matrix.unit = matrix.normalize
 
+-- clone = construct new
+matrix.clone = matrix
+
 return matrix
