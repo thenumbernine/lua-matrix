@@ -4,6 +4,8 @@ local ffi = require 'ffi'
 local class = require 'ext.class'
 local table = require 'ext.table'
 local asserteq = require 'ext.assert'.eq
+local assertle = require 'ext.assert'.le
+local asserttype = require 'ext.assert'.type
 
 local complex
 local function requireComplex()
@@ -63,7 +65,7 @@ function matrix_ffi:init(src, ctype, size, rowmajor)
 			self.size_ = matrix_lua{size}
 		end
 	else
-		assert(src == nil)
+		asserteq(src, nil)
 		self.size_ = matrix_lua{0}
 	end
 
@@ -130,7 +132,7 @@ end
 -- you gotta set ctypes with matrix_ffi.real = whatever ctype
 function matrix_ffi.const(value, dims, ctype, ...)
 	ctype = ctype or dims.ctype
-	assert(type(dims) == 'table')
+	asserttype(dims, 'table')
 	if not (ctype == nil or type(ctype) == 'string') then
 		error("got unknown ctype: "..require 'ext.tolua'(ctype))
 	end
@@ -264,7 +266,7 @@ function matrix_ffi:__call(...)
 	local n = select('#', ...)
 	if type(firstI) == 'table' then error'TODO' end
 	local deg = self:degree()
-	assert(n <= deg, "tried to index too far into a matrix")
+	assertle(n, deg, "tried to index too far into a matrix")
 
 	if n == deg then
 		local index = 0
@@ -427,7 +429,7 @@ function matrix_ffi.__add(a,b)
 			c.ptr[i] = c.ptr[i] + b
 		end
 	elseif matrix_ffi:isa(b) then
-		assert(c.size_ == b.size_)
+		asserteq(c.size_, b.size_)
 		for i=0,c.volume-1 do
 			c.ptr[i] = c.ptr[i] + b.ptr[i]
 		end
@@ -446,7 +448,7 @@ function matrix_ffi.__sub(a,b)
 			c.ptr[i] = c.ptr[i] - b
 		end
 	elseif matrix_ffi:isa(b) then
-		assert(c.size_ == b.size_)
+		asserteq(c.size_, b.size_)
 		for i=1,c.volume do
 			c.ptr[i-1] = c.ptr[i-1] - b.ptr[i-1]
 		end
@@ -628,14 +630,14 @@ function matrix_ffi.inner(a,b,metric,aj,bj, c)
 	local saj = ssa:remove(aj)
 	local ssb = table(sb)
 	local sbj = ssb:remove(bj)
-	assert(saj == sbj, "inner dimensions must be equal")
+	asserteq(saj, sbj, "inner dimensions must be equal")
 
 	local sc = table(ssa):append(ssb)
 
 	if c then
-		assert(#c.size_ == #sc)
+		asserteq(#c.size_, #sc)
 		for i=1,#sc do
-			assert(c.size_[i] == sc[i])
+			asserteq(c.size_[i], sc[i])
 		end
 	else
 		c = matrix_ffi(nil, a.ctype, sc)
@@ -709,7 +711,7 @@ function matrix_ffi.emul(a,b)
 			return a * b(...)
 		end)
 	end
-	assert(a:size() == b:size())
+	asserteq(a:size(), b:size())
 	return a:size():lambda(function(...)
 		return a(...) * b(...)
 	end)
@@ -730,7 +732,7 @@ function matrix_ffi.ediv(a,b)
 			return a / b(...)
 		end)
 	end
-	assert(a:size() == b:size())
+	asserteq(a:size(), b:size())
 	return a:size():lambda(function(...)
 		return a(...) / b(...)
 	end)
@@ -758,7 +760,7 @@ end
 function matrix_ffi.dot(a,b)
 	assert(matrix_ffi:isa(a))
 	assert(matrix_ffi:isa(b))
-	assert(a.size_ == b.size_)
+	asserteq(a.size_, b.size_)
 	local sum = 0
 	for i=0,a.volume-1 do
 		sum = sum + a.ptr[i] * b.ptr[i]
@@ -945,7 +947,7 @@ function matrix_ffi.eig(A, B)
 	local size = A:size()
 	assert(matrix_ffi:isa(size))
 	local m, n = size:unpack()
-	assert(m == n)
+	asserteq(m, n)
 	B = B or size:eye(A.ctype)
 	local alpha = matrix_ffi(nil, A.ctype, {n})
 	local beta = matrix_ffi(nil, A.ctype, {n})
@@ -1011,7 +1013,7 @@ function matrix_ffi.inv(A)
 	if m ~= n then
 		error("expected square matrix, got dimensions "..m..', '..n)
 	end
-	assert(m == n)	-- needed for getri
+	asserteq(m, n)	-- needed for getri
 	local mn = math.min(m,n)
 	local ipiv = matrix_ffi(nil, 'int', {mn})
 
@@ -1066,7 +1068,7 @@ matrix_ffi.determinant = require 'matrix.determinant'
 matrix_ffi.det = matrix_ffi.determinant
 
 function matrix_ffi:copy(src)
-	assert(self:size() == src:size())
+	asserteq(self:size(), src:size())
 	ffi.copy(self.ptr, src.ptr, ffi.sizeof(self.ctype) * self.volume)
 	return self
 end
