@@ -1,13 +1,13 @@
 package = "matrix"
 version = "dev-1"
 source = {
-	url = "git+https://github.com/thenumbernine/lua-matrix.git"
+	url = "git+https://github.com/thenumbernine/lua-matrix"
 }
 description = {
 	summary = "Matrix class for Lua",
 	detailed = "Matrix class for Lua",
 	homepage = "https://github.com/thenumbernine/lua-matrix",
-	license = "MIT",
+	license = "MIT"
 }
 dependencies = {
 	"lua >= 5.1",
@@ -24,7 +24,9 @@ build = {
 		["matrix.index"] = "index.lua",
 		["matrix.inverse"] = "inverse.lua",
 		["matrix.lapinv"] = "lapinv.lua",
-		["matrix"] = "matrix.lua",
-		["matrix.test-ffi"] = "test-ffi.lua"
-	}
+		matrix = "matrix.lua",
+		["matrix.tests.compare-speed"] = "tests/compare-speed.lua",
+		["matrix.tests.test"] = "tests/test.lua",
+		["matrix.tests.test-ffi"] = "tests/test-ffi.lua"
+	},
 }
