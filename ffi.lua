@@ -527,6 +527,9 @@ function matrix_ffi.scale(a, s, result)
 end
 
 -- could match matrix_lua except matrix ref if I copied it back
+-- TODO this is opposite of matrix.mul4x4
+-- ... I think esp for the optimized pathways
+-- ... I think esp since I switched from row to col major memory as default ...
 function matrix_ffi.inner(a,b,metric,aj,bj, c)
 	if isnumber(a) then
 		if isnumber(b) then return a * b end
