@@ -1103,6 +1103,10 @@ function matrix_ffi:copy(src)
 	return self
 end
 
+function matrix_ffi:clone()
+	return matrix_ffi(self, self.type, self.size, self.rowmajor)
+end
+
 -- glsl functions:
 
 local ident = matrix_ffi({
@@ -1454,6 +1458,24 @@ function matrix_ffi:applyTranslate(x,y,z)
 	self.ptr[14] = x * self.ptr[2] + y * self.ptr[6] + z * self.ptr[10] + self.ptr[14]
 	self.ptr[15] = x * self.ptr[3] + y * self.ptr[7] + z * self.ptr[11] + self.ptr[15]
 	return self
+end
+
+-- based on the mesa impl: https://community.khronos.org/t/glupickmatrix-implementation/72008/2
+-- except that I'm going to assume x, y, dx, dy are normalized to [0,1] instead of [0,viewport-1] so that you don't have to also get and pass the viewport
+function matrix_ffi:setPickMatrix(...)
+	return self:setIdent():applyPickMatrix(...)
+end
+function matrix_ffi:applyPickMatrix(x, y, dx, dy, viewport)
+	if dx <= 0 or dy <= 0 then return end
+	return self
+		:applyTranslate(
+			(1 - 2 * x) / dx,
+			(1 - 2 * y) / dy,
+			0)
+		:applyScale(
+			1 / dx,
+			1 / dy,
+			1)
 end
 
 return matrix_ffi
