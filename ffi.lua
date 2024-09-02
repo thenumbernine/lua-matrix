@@ -1119,6 +1119,7 @@ local ident = matrix_ffi({
 -- optimized ... default mul of arbitrary-rank inner-product is verrrry slow
 function matrix_ffi:mul4x4(a,b)
 	assert(#self.size_ == 2 and self.size_[1] == 4 and self.size_[2] == 4)
+--[[ no temp vars ... any perf diff?
 	-- also assert self isn't the table a or b, or else this will mess up
 	self.ptr[0] = a.ptr[0] * b.ptr[0] + a.ptr[4] * b.ptr[1] + a.ptr[8] * b.ptr[2] + a.ptr[12] * b.ptr[3]
 	self.ptr[4] = a.ptr[0] * b.ptr[4] + a.ptr[4] * b.ptr[5] + a.ptr[8] * b.ptr[6] + a.ptr[12] * b.ptr[7]
@@ -1136,6 +1137,27 @@ function matrix_ffi:mul4x4(a,b)
 	self.ptr[7] = a.ptr[3] * b.ptr[4] + a.ptr[7] * b.ptr[5] + a.ptr[11] * b.ptr[6] + a.ptr[15] * b.ptr[7]
 	self.ptr[11] = a.ptr[3] * b.ptr[8] + a.ptr[7] * b.ptr[9] + a.ptr[11] * b.ptr[10] + a.ptr[15] * b.ptr[11]
 	self.ptr[15] = a.ptr[3] * b.ptr[12] + a.ptr[7] * b.ptr[13] + a.ptr[11] * b.ptr[14] + a.ptr[15] * b.ptr[15]
+--]]
+-- [[
+	local a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15 = a.ptr[0], a.ptr[1], a.ptr[2], a.ptr[3], a.ptr[4], a.ptr[5], a.ptr[6], a.ptr[7], a.ptr[8], a.ptr[9], a.ptr[10], a.ptr[11], a.ptr[12], a.ptr[13], a.ptr[14], a.ptr[15]
+	local b0, b1, b2, b3, b4, b5, b6, b7, b8, b9, b10, b11, b12, b13, b14, b15 = b.ptr[0], b.ptr[1], b.ptr[2], b.ptr[3], b.ptr[4], b.ptr[5], b.ptr[6], b.ptr[7], b.ptr[8], b.ptr[9], b.ptr[10], b.ptr[11], b.ptr[12], b.ptr[13], b.ptr[14], b.ptr[15]
+	self.ptr[0]		=	a0  * b0  + a4  * b1  + a8  * b2  + a12 * b3
+	self.ptr[4]		=	a0  * b4  + a4  * b5  + a8  * b6  + a12 * b7
+	self.ptr[8]		=	a0  * b8  + a4  * b9  + a8  * b10 + a12 * b11
+	self.ptr[12]	=	a0  * b12 + a4  * b13 + a8  * b14 + a12 * b15
+	self.ptr[1]		=	a1  * b0  + a5  * b1  + a9  * b2  + a13 * b3
+	self.ptr[5]		=	a1  * b4  + a5  * b5  + a9  * b6  + a13 * b7
+	self.ptr[9]		=	a1  * b8  + a5  * b9  + a9  * b10 + a13 * b11
+	self.ptr[13]	=	a1  * b12 + a5  * b13 + a9  * b14 + a13 * b15
+	self.ptr[2]		=	a2  * b0  + a6  * b1  + a10 * b2  + a14 * b3
+	self.ptr[6]		=	a2  * b4  + a6  * b5  + a10 * b6  + a14 * b7
+	self.ptr[10]	=	a2  * b8  + a6  * b9  + a10 * b10 + a14 * b11
+	self.ptr[14]	=	a2  * b12 + a6  * b13 + a10 * b14 + a14 * b15
+	self.ptr[3]		=	a3  * b0  + a7  * b1  + a11 * b2  + a15 * b3
+	self.ptr[7]		=	a3  * b4  + a7  * b5  + a11 * b6  + a15 * b7
+	self.ptr[11]	=	a3  * b8  + a7  * b9  + a11 * b10 + a15 * b11
+	self.ptr[15]	=	a3  * b12 + a7  * b13 + a11 * b14 + a15 * b15
+--]]
 	return self
 end
 
