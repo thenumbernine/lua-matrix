@@ -1488,7 +1488,7 @@ function matrix_ffi:setPickMatrix(...)
 	return self:setIdent():applyPickMatrix(...)
 end
 function matrix_ffi:applyPickMatrix(x, y, dx, dy, viewport)
-	if dx <= 0 or dy <= 0 then return end
+	if dx <= 0 or dy <= 0 then return self end
 	return self
 		:applyTranslate(
 			(1 - 2 * x) / dx,
