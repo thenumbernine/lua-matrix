@@ -1175,6 +1175,8 @@ function matrix_ffi:setIdent()
 	return self:copy(ident)
 end
 function matrix_ffi:setOrtho(l,r,b,t,n,f)
+	n = n or -1000
+	f = f or 1000
 --DEBUG:assert(#self.size_ == 2 and self.size_[1] == 4 and self.size_[2] == 4)
 	local invdx = 1 / (r - l)
 	local invdy = 1 / (t - b)
@@ -1198,6 +1200,8 @@ function matrix_ffi:setOrtho(l,r,b,t,n,f)
 	return self
 end
 function matrix_ffi:applyOrtho(l,r,b,t,n,f)
+	n = n or -1000
+	f = f or 1000
 --DEBUG:assert(#self.size_ == 2 and self.size_[1] == 4 and self.size_[2] == 4)
 	local invdx = 1 / (r - l)
 	local invdy = 1 / (t - b)
