@@ -1118,7 +1118,7 @@ local ident = matrix_ffi({
 
 -- optimized ... default mul of arbitrary-rank inner-product is verrrry slow
 function matrix_ffi:mul4x4(a,b)
-	assert(#self.size_ == 2 and self.size_[1] == 4 and self.size_[2] == 4)
+--DEBUG:assert(#self.size_ == 2 and self.size_[1] == 4 and self.size_[2] == 4)
 --[[ no temp vars ... any perf diff?
 	-- also assert self isn't the table a or b, or else this will mess up
 	self.ptr[0] = a.ptr[0] * b.ptr[0] + a.ptr[4] * b.ptr[1] + a.ptr[8] * b.ptr[2] + a.ptr[12] * b.ptr[3]
@@ -1175,7 +1175,7 @@ function matrix_ffi:setIdent()
 	return self:copy(ident)
 end
 function matrix_ffi:setOrtho(l,r,b,t,n,f)
-	assert(#self.size_ == 2 and self.size_[1] == 4 and self.size_[2] == 4)
+--DEBUG:assert(#self.size_ == 2 and self.size_[1] == 4 and self.size_[2] == 4)
 	local invdx = 1 / (r - l)
 	local invdy = 1 / (t - b)
 	local invdz = 1 / (f - n)
@@ -1197,8 +1197,8 @@ function matrix_ffi:setOrtho(l,r,b,t,n,f)
 	self.ptr[15] = 1
 	return self
 end
-function matrix_ffi:applyOrtho(...)
-	assert(#self.size_ == 2 and self.size_[1] == 4 and self.size_[2] == 4)
+function matrix_ffi:applyOrtho(l,r,b,t,n,f)
+--DEBUG:assert(#self.size_ == 2 and self.size_[1] == 4 and self.size_[2] == 4)
 	local invdx = 1 / (r - l)
 	local invdy = 1 / (t - b)
 	local invdz = 1 / (f - n)
@@ -1243,7 +1243,7 @@ function matrix_ffi:applyOrtho(...)
 end
 
 function matrix_ffi:setFrustum(l,r,b,t,n,f)
-	assert(#self.size_ == 2 and self.size_[1] == 4 and self.size_[2] == 4)
+--DEBUG:assert(#self.size_ == 2 and self.size_[1] == 4 and self.size_[2] == 4)
 	local invdx = 1 / (r - l)
 	local invdy = 1 / (t - b)
 	local invdz = 1 / (f - n)
@@ -1285,7 +1285,7 @@ local function normalize(x,y,z)
 	return 1,0,0
 end
 function matrix_ffi:setLookAt(ex,ey,ez,cx,cy,cz,upx,upy,upz)
-	assert(#self.size_ == 2 and self.size_[1] == 4 and self.size_[2] == 4)
+--DEBUG:assert(#self.size_ == 2 and self.size_[1] == 4 and self.size_[2] == 4)
 	local zx,zy,zz = normalize(ex-cx,ey-cy,ez-cz)
 	local xx, xy, xz = normalize(cross(upx,upy,upz,zx,zy,zz))
 	local yx, yy, yz = normalize(cross(zx,zy,zz,xx,xy,xz))
@@ -1313,7 +1313,8 @@ function matrix_ffi:applyLookAt(...)
 end
 
 function matrix_ffi:setRotate(radians,x,y,z)
-	assert(#self.size_ == 2 and self.size_[1] == 4 and self.size_[2] == 4)
+	if not x then x,y,z = 0,0,1 end
+--DEBUG:assert(#self.size_ == 2 and self.size_[1] == 4 and self.size_[2] == 4)
 	local l = math.sqrt(x*x + y*y + z*z)
 	if l < 1e-20 then
 		x=1
@@ -1347,6 +1348,8 @@ function matrix_ffi:setRotate(radians,x,y,z)
 	return self
 end
 function matrix_ffi:applyRotate(radians,x,y,z)
+--DEBUG:assert(#self.size_ == 2 and self.size_[1] == 4 and self.size_[2] == 4)
+	if not x then x,y,z = 0,0,1 end
 	local l = math.sqrt(x*x + y*y + z*z)
 	if l < 1e-20 then
 		x=1
@@ -1405,7 +1408,7 @@ function matrix_ffi:setScale(x,y,z)
 	x = x or 1
 	y = y or 1
 	z = z or 1
-	assert(#self.size_ == 2 and self.size_[1] == 4 and self.size_[2] == 4)
+--DEBUG:assert(#self.size_ == 2 and self.size_[1] == 4 and self.size_[2] == 4)
 	self.ptr[0] = x
 	self.ptr[1] = 0
 	self.ptr[2] = 0
@@ -1425,7 +1428,7 @@ function matrix_ffi:setScale(x,y,z)
 	return self
 end
 function matrix_ffi:applyScale(x,y,z)
-	assert(#self.size_ == 2 and self.size_[1] == 4 and self.size_[2] == 4)
+--DEBUG:assert(#self.size_ == 2 and self.size_[1] == 4 and self.size_[2] == 4)
 	if x then
 		self.ptr[0] = self.ptr[0] * x
 		self.ptr[1] = self.ptr[1] * x
@@ -1451,7 +1454,7 @@ function matrix_ffi:setTranslate(x,y,z)
 	x = x or 0
 	y = y or 0
 	z = z or 0
-	assert(#self.size_ == 2 and self.size_[1] == 4 and self.size_[2] == 4)
+--DEBUG:assert(#self.size_ == 2 and self.size_[1] == 4 and self.size_[2] == 4)
 	self.ptr[0] = 1
 	self.ptr[1] = 0
 	self.ptr[2] = 0
@@ -1474,7 +1477,7 @@ function matrix_ffi:applyTranslate(x,y,z)
 	x = x or 0
 	y = y or 0
 	z = z or 0
-	assert(#self.size_ == 2 and self.size_[1] == 4 and self.size_[2] == 4)
+--DEBUG:assert(#self.size_ == 2 and self.size_[1] == 4 and self.size_[2] == 4)
 	self.ptr[12] = x * self.ptr[0] + y * self.ptr[4] + z * self.ptr[8] + self.ptr[12]
 	self.ptr[13] = x * self.ptr[1] + y * self.ptr[5] + z * self.ptr[9] + self.ptr[13]
 	self.ptr[14] = x * self.ptr[2] + y * self.ptr[6] + z * self.ptr[10] + self.ptr[14]
@@ -1488,6 +1491,7 @@ function matrix_ffi:setPickMatrix(...)
 	return self:setIdent():applyPickMatrix(...)
 end
 function matrix_ffi:applyPickMatrix(x, y, dx, dy, viewport)
+--DEBUG:assert(#self.size_ == 2 and self.size_[1] == 4 and self.size_[2] == 4)
 	if dx <= 0 or dy <= 0 then return self end
 	return self
 		:applyTranslate(
@@ -1498,6 +1502,30 @@ function matrix_ffi:applyPickMatrix(x, y, dx, dy, viewport)
 			1 / dx,
 			1 / dy,
 			1)
+end
+
+-- based on mesa: https://github.com/Starlink/mesa/blob/master/src/glu/sgi/libutil/project.c
+function matrix_ffi:setPerspective(fovy, aspectRatio, zNear, zFar)
+--DEBUG:assert(#self.size_ == 2 and self.size_[1] == 4 and self.size_[2] == 4)
+	local radians = math.rad(.5 * fovy)
+	local deltaZ = zFar - zNear
+	local sine = math.sin(radians)
+	if deltaZ == 0 or sine == 0 or aspectRatio == 0 then return self end
+	local cotangent = math.cos(radians) / sine
+	self:setIdent()
+	self.ptr[0 + 4 * 0] = cotangent / aspectRatio
+	self.ptr[1 + 4 * 1] = cotangent
+	self.ptr[2 + 4 * 2] = -(zFar + zNear) / deltaZ
+	self.ptr[2 + 4 * 3] = -1
+	self.ptr[3 + 4 * 2] = -2 * zNear * zFar / deltaZ
+	self.ptr[3 + 4 * 3] = 0
+	return self
+end
+function matrix_ffi:applyPerspective(...)
+	return self:mul4x4(
+		self,
+		matrix_ffi({4,4},'float'):zeros():setPerspective(...)
+	)
 end
 
 return matrix_ffi
