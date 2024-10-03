@@ -1210,7 +1210,7 @@ function matrix_ffi:applyOrtho(l,r,b,t,n,f)
 	local rhs03 = -(r + l) * invdx
 	local rhs11 = 2 * invdy
 	local rhs13 = -(t + b) * invdy
-	local rhs22 = -2 / dz
+	local rhs22 = -2 * invdz
 	local rhs23 = -(f + n) * invdz
 	local n00 = self.ptr[0] * rhs00
 	local n01 = self.ptr[4] * rhs11
