@@ -1177,9 +1177,9 @@ function matrix_ffi:setIdent()
 	return self:copy(ident)
 end
 function matrix_ffi:setOrtho(l,r,b,t,n,f)
+--DEBUG:assert(#self.size_ == 2 and self.size_[1] == 4 and self.size_[2] == 4)
 	n = n or -1000
 	f = f or 1000
---DEBUG:assert(#self.size_ == 2 and self.size_[1] == 4 and self.size_[2] == 4)
 	local invdx = 1 / (r - l)
 	local invdy = 1 / (t - b)
 	local invdz = 1 / (f - n)
@@ -1202,9 +1202,9 @@ function matrix_ffi:setOrtho(l,r,b,t,n,f)
 	return self
 end
 function matrix_ffi:applyOrtho(l,r,b,t,n,f)
+--DEBUG:assert(#self.size_ == 2 and self.size_[1] == 4 and self.size_[2] == 4)
 	n = n or -1000
 	f = f or 1000
---DEBUG:assert(#self.size_ == 2 and self.size_[1] == 4 and self.size_[2] == 4)
 	local invdx = 1 / (r - l)
 	local invdy = 1 / (t - b)
 	local invdz = 1 / (f - n)
@@ -1250,6 +1250,8 @@ end
 
 function matrix_ffi:setFrustum(l,r,b,t,n,f)
 --DEBUG:assert(#self.size_ == 2 and self.size_[1] == 4 and self.size_[2] == 4)
+	n = n or .1
+	f = f or 1000
 	local invdx = 1 / (r - l)
 	local invdy = 1 / (t - b)
 	local invdz = 1 / (f - n)
@@ -1271,12 +1273,54 @@ function matrix_ffi:setFrustum(l,r,b,t,n,f)
 	self.ptr[15] = 0
 	return self
 end
--- TODO optimize the in-place apply instead of this slow crap:
-function matrix_ffi:applyFrustum(...)
-	return self:mul4x4(
-		self,
-		matrix_ffi{4,4}:zeros():setFrustum(...)
-	)
+function matrix_ffi:applyFrustum(l,r,b,t,n,f)
+--DEBUG:assert(#self.size_ == 2 and self.size_[1] == 4 and self.size_[2] == 4)
+	n = n or .1
+	f = f or 1000
+	local invdx = 1 / (r - l)
+	local invdy = 1 / (t - b)
+	local invdz = 1 / (f - n)
+
+	local rhs0 = 2 * n * invdx
+	local rhs8 = (r + l) * invdx
+	local rhs5 = 2 * n * invdy
+	local rhs9 = (t + b) * invdy
+	local rhs10 = -(f + n) * invdz
+	local rhs14 = -2 * f * n * invdz
+
+	local new0 = self.ptr[0] * rhs0
+	local new4 = self.ptr[4] * rhs5
+	local new8 = self.ptr[0] * rhs8 + self.ptr[4] * rhs9 + self.ptr[8] * rhs10 - self.ptr[12]
+	local new12 = self.ptr[8] * rhs14
+	local new1 = self.ptr[1] * rhs0
+	local new5 = self.ptr[5] * rhs5
+	local new9 = self.ptr[1] * rhs8 + self.ptr[5] * rhs9 + self.ptr[9] * rhs10 - self.ptr[13]
+	local new13 = self.ptr[9] * rhs14
+	local new2 = self.ptr[2] * rhs0
+	local new6 = self.ptr[6] * rhs5
+	local new10 = self.ptr[2] * rhs8 + self.ptr[6] * rhs9 + self.ptr[10] * rhs10 - self.ptr[14]
+	local new14 = self.ptr[10] * rhs14
+	local new3 = self.ptr[3] * rhs0
+	local new7 = self.ptr[7] * rhs5
+	local new11 = self.ptr[3] * rhs8 + self.ptr[7] * rhs9 + self.ptr[11] * rhs10 - self.ptr[15]
+	local new15 = self.ptr[11] * rhs14
+
+	self.ptr[0] = new0
+	self.ptr[4] = new4
+	self.ptr[8] = new8
+	self.ptr[12] = new12
+	self.ptr[1] = new1
+	self.ptr[5] = new5
+	self.ptr[9] = new9
+	self.ptr[13] = new13
+	self.ptr[2] = new2
+	self.ptr[6] = new6
+	self.ptr[10] = new10
+	self.ptr[14] = new14
+	self.ptr[3] = new3
+	self.ptr[7] = new7
+	self.ptr[11] = new11
+	self.ptr[15] = new15
 end
 
 -- http://iphonedevelopment.blogspot.com/2008/12/glulookat.html?m=1
