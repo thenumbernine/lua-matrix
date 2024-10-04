@@ -708,6 +708,8 @@ function matrix_ffi.inner(a,b,metric,aj,bj, c)
 end
 
 -- matches matrix_lua
+-- TODO THIS IS TRANSPOSED as a result of me switching matrix.ffi from row to col major or vice versa ...
+-- FIXME
 matrix_ffi.__mul = matrix_ffi.inner
 
 -- this is here to put the result arg first
@@ -1271,7 +1273,10 @@ function matrix_ffi:setFrustum(l,r,b,t,n,f)
 end
 -- TODO optimize the in-place apply instead of this slow crap:
 function matrix_ffi:applyFrustum(...)
-	return self:copy(self * matrix_ffi{4,4}:zeros():setFrustum(...))
+	return self:mul4x4(
+		self,
+		matrix_ffi{4,4}:zeros():setFrustum(...)
+	)
 end
 
 -- http://iphonedevelopment.blogspot.com/2008/12/glulookat.html?m=1
@@ -1313,7 +1318,10 @@ function matrix_ffi:setLookAt(ex,ey,ez,cx,cy,cz,upx,upy,upz)
 end
 -- TODO optimize the in-place apply instead of this slow crap:
 function matrix_ffi:applyLookAt(...)
-	return self:copy(self * matrix_ffi{4,4}:zeros():setLookAt(...))
+	return self:mul4x4(
+		self,
+		matrix_ffi{4,4}:zeros():setLookAt(...)
+	)
 end
 
 function matrix_ffi:setRotate(radians,x,y,z)
