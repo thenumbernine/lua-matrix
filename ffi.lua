@@ -621,9 +621,7 @@ function matrix_ffi.inner(a,b,metric,aj,bj, c)
 					c = matrix_ffi(nil, a.ctype, {c1, c2}, a.rowmajor)
 				end
 
-				if a.rowmajor
-				and b.rowmajor
-				then
+				if a.rowmajor ~= b.rowmajor then
 					for i=0,a1-1 do
 						for j=0,b2-1 do
 							local sum = 0
@@ -634,17 +632,14 @@ function matrix_ffi.inner(a,b,metric,aj,bj, c)
 						end
 					end
 					return c
-
-				elseif not a.rowmajor
-				and not b.rowmajor
-				then
+				else
 					for i=0,a1-1 do
 						for j=0,b2-1 do
 							local sum = 0
 							for k=0,a2-1 do
 								sum = sum + a.ptr[i + a1 * k] * b.ptr[k + b1 * j]
 							end
-							c.ptr[i * c2 + j] = sum
+							c.ptr[j * c2 + i] = sum
 						end
 					end
 					return c
@@ -1174,7 +1169,14 @@ function matrix_ffi:mul4x4v4(x,y,z,w)
 end
 
 function matrix_ffi:setIdent()
-	return self:copy(ident)
+	if self.type == 'float' then
+		return self:copy(ident)
+	end
+	self.ptr[0],  self.ptr[1],  self.ptr[2],  self.ptr[3]  = 1, 0, 0, 0
+	self.ptr[4],  self.ptr[5],  self.ptr[6],  self.ptr[7]  = 0, 1, 0, 0
+	self.ptr[8],  self.ptr[9],  self.ptr[10], self.ptr[11] = 0, 0, 1, 0
+	self.ptr[12], self.ptr[13], self.ptr[14], self.ptr[15] = 0, 0, 0, 1
+	return self
 end
 function matrix_ffi:setOrtho(l,r,b,t,n,f)
 --DEBUG:assert(#self.size_ == 2 and self.size_[1] == 4 and self.size_[2] == 4)
@@ -1249,7 +1251,7 @@ function matrix_ffi:applyOrtho(l,r,b,t,n,f)
 end
 
 function matrix_ffi:setFrustum(l,r,b,t,n,f)
---DEBUG:assert(#self.size_ == 2 and self.size_[1] == 4 and self.size_[2] == 4)
+--DEBUG:assert(#self.size_ == 2 and self.size_[1] == 4 and self.size_[2] == 4 and not self.rowmajor)
 	n = n or .1
 	f = f or 1000
 	local invdx = 1 / (r - l)
@@ -1274,7 +1276,7 @@ function matrix_ffi:setFrustum(l,r,b,t,n,f)
 	return self
 end
 function matrix_ffi:applyFrustum(l,r,b,t,n,f)
---DEBUG:assert(#self.size_ == 2 and self.size_[1] == 4 and self.size_[2] == 4)
+--DEBUG:assert(#self.size_ == 2 and self.size_[1] == 4 and self.size_[2] == 4 and not self.rowmajor)
 	n = n or .1
 	f = f or 1000
 	local invdx = 1 / (r - l)
@@ -1338,7 +1340,7 @@ local function normalize(x,y,z)
 	return 1,0,0
 end
 function matrix_ffi:setLookAt(ex,ey,ez,cx,cy,cz,upx,upy,upz)
---DEBUG:assert(#self.size_ == 2 and self.size_[1] == 4 and self.size_[2] == 4)
+--DEBUG:assert(#self.size_ == 2 and self.size_[1] == 4 and self.size_[2] == 4 and not self.rowmajor)
 	local zx,zy,zz = normalize(ex-cx,ey-cy,ez-cz)
 	local xx, xy, xz = normalize(cross(upx,upy,upz,zx,zy,zz))
 	local yx, yy, yz = normalize(cross(zx,zy,zz,xx,xy,xz))
@@ -1370,7 +1372,7 @@ end
 
 function matrix_ffi:setRotate(radians,x,y,z)
 	if not x then x,y,z = 0,0,1 end
---DEBUG:assert(#self.size_ == 2 and self.size_[1] == 4 and self.size_[2] == 4)
+--DEBUG:assert(#self.size_ == 2 and self.size_[1] == 4 and self.size_[2] == 4 and not self.rowmajor)
 	local l = math.sqrt(x*x + y*y + z*z)
 	if l < 1e-20 then
 		x=1
@@ -1404,7 +1406,7 @@ function matrix_ffi:setRotate(radians,x,y,z)
 	return self
 end
 function matrix_ffi:applyRotate(radians,x,y,z)
---DEBUG:assert(#self.size_ == 2 and self.size_[1] == 4 and self.size_[2] == 4)
+--DEBUG:assert(#self.size_ == 2 and self.size_[1] == 4 and self.size_[2] == 4 and not self.rowmajor)
 	if not x then x,y,z = 0,0,1 end
 	local l = math.sqrt(x*x + y*y + z*z)
 	if l < 1e-20 then
@@ -1464,7 +1466,7 @@ function matrix_ffi:setScale(x,y,z)
 	x = x or 1
 	y = y or 1
 	z = z or 1
---DEBUG:assert(#self.size_ == 2 and self.size_[1] == 4 and self.size_[2] == 4)
+--DEBUG:assert(#self.size_ == 2 and self.size_[1] == 4 and self.size_[2] == 4 and not self.rowmajor)
 	self.ptr[0] = x
 	self.ptr[1] = 0
 	self.ptr[2] = 0
@@ -1484,7 +1486,7 @@ function matrix_ffi:setScale(x,y,z)
 	return self
 end
 function matrix_ffi:applyScale(x,y,z)
---DEBUG:assert(#self.size_ == 2 and self.size_[1] == 4 and self.size_[2] == 4)
+--DEBUG:assert(#self.size_ == 2 and self.size_[1] == 4 and self.size_[2] == 4 and not self.rowmajor)
 	if x then
 		self.ptr[0] = self.ptr[0] * x
 		self.ptr[1] = self.ptr[1] * x
@@ -1510,7 +1512,7 @@ function matrix_ffi:setTranslate(x,y,z)
 	x = x or 0
 	y = y or 0
 	z = z or 0
---DEBUG:assert(#self.size_ == 2 and self.size_[1] == 4 and self.size_[2] == 4)
+--DEBUG:assert(#self.size_ == 2 and self.size_[1] == 4 and self.size_[2] == 4 and not self.rowmajor)
 	self.ptr[0] = 1
 	self.ptr[1] = 0
 	self.ptr[2] = 0
@@ -1533,7 +1535,7 @@ function matrix_ffi:applyTranslate(x,y,z)
 	x = x or 0
 	y = y or 0
 	z = z or 0
---DEBUG:assert(#self.size_ == 2 and self.size_[1] == 4 and self.size_[2] == 4)
+--DEBUG:assert(#self.size_ == 2 and self.size_[1] == 4 and self.size_[2] == 4 and not self.rowmajor)
 	self.ptr[12] = x * self.ptr[0] + y * self.ptr[4] + z * self.ptr[8] + self.ptr[12]
 	self.ptr[13] = x * self.ptr[1] + y * self.ptr[5] + z * self.ptr[9] + self.ptr[13]
 	self.ptr[14] = x * self.ptr[2] + y * self.ptr[6] + z * self.ptr[10] + self.ptr[14]
@@ -1544,9 +1546,10 @@ end
 -- based on the mesa impl: https://community.khronos.org/t/glupickmatrix-implementation/72008/2
 -- except that I'm going to assume x, y, dx, dy are normalized to [0,1] instead of [0,viewport-1] so that you don't have to also get and pass the viewport
 function matrix_ffi:setPickMatrix(...)
+--DEBUG:assert(#self.size_ == 2 and self.size_[1] == 4 and self.size_[2] == 4)
 	return self:setIdent():applyPickMatrix(...)
 end
-function matrix_ffi:applyPickMatrix(x, y, dx, dy, viewport)
+function matrix_ffi:applyPickMatrix(x, y, dx, dy)
 --DEBUG:assert(#self.size_ == 2 and self.size_[1] == 4 and self.size_[2] == 4)
 	if dx <= 0 or dy <= 0 then return self end
 	return self
