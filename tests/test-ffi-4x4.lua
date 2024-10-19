@@ -21,8 +21,7 @@ make sure all the :set, :apply, operator*, and :mul4x4 all work correctly ... fo
 --]]
 local table = require 'ext.table'
 local range = require 'ext.range'
-local asserteq = require 'ext.assert'.eq
-local assertindex = require 'ext.assert'.index
+local assert = require 'ext.assert'
 local matrix = require 'matrix.ffi'
 
 local function zero()
@@ -37,7 +36,7 @@ local lambdaTest = matrix{4,4}:lambda(function(i,j)	-- (row, column) in traditio
 end)
 print(lambdaTest)
 assert(not lambdaTest.rowmajor)
-for i=0,15 do asserteq(lambdaTest.ptr[i], i) end
+for i=0,15 do assert.eq(lambdaTest.ptr[i], i) end
 
 do local j=1 -- for j=1,3 do	-- A_{j,k}
 	do local k=2 -- for k=j+1,4 do
@@ -54,7 +53,7 @@ do local j=1 -- for j=1,3 do	-- A_{j,k}
 			print('rowmajor', A.rowmajor)
 			print(A)
 			assert(not A.rowmajor)	-- colmajor by default still, right?
-			asserteq(A.ptr[(j-1) + 4 * (k-1)], A_jk) 	-- colmajor means A_{1,2} goes at 0-based index 4
+			assert.eq(A.ptr[(j-1) + 4 * (k-1)], A_jk) 	-- colmajor means A_{1,2} goes at 0-based index 4
 
 			local B_jk = math.random(20)
 			local B_11 = math.random(3,7)
@@ -79,13 +78,13 @@ do local j=1 -- for j=1,3 do	-- A_{j,k}
 			print'__mulresult'
 			print('rowmajor', __mulresult.rowmajor)
 			print(__mulresult)
-			asserteq(__mulresult, C)
+			assert.eq(__mulresult, C)
 
 			local mul4x4result = zero():mul4x4(A, B)
 			print'mul4x4result'
 			print('rowmajor', mul4x4result.rowmajor)
 			print(mul4x4result)
-			asserteq(mul4x4result, C)
+			assert.eq(mul4x4result, C)
 			
 			j,k = k,j
 		end
@@ -117,7 +116,7 @@ for _,nf in ipairs{
 	print'A'
 	print(A)
 	local B = zero()
-	assertindex(matrix,'set'..n)(B, fs:unpack())
+	assert.index(matrix,'set'..n)(B, fs:unpack())
 	print'B'
 	print(B)
 	local C1 = A * B				-- test __mul, which always allocs a new matrix
@@ -127,10 +126,10 @@ for _,nf in ipairs{
 	print'C2'
 	print(C2)
 	local C3 = A:clone()
-	assertindex(matrix, 'apply'..n)(C3, fs:unpack())	-- test ':apply' which optimizes the :set function
+	assert.index(matrix, 'apply'..n)(C3, fs:unpack())	-- test ':apply' which optimizes the :set function
 	print'C3'
 	print(C3)
-	asserteq(C1, C2, 'C1 vs C2')
-	asserteq(C1, C3, 'C1 vs C3')
-	asserteq(C2, C3, 'C2 vs C3')	-- meh
+	assert.eq(C1, C2, 'C1 vs C2')
+	assert.eq(C1, C3, 'C1 vs C3')
+	assert.eq(C2, C3, 'C2 vs C3')	-- meh
 end
