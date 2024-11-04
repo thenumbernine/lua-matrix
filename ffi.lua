@@ -1337,28 +1337,32 @@ local function normalize(x,y,z)
 	end
 	return 1,0,0
 end
+-- https://www.khronos.org/opengl/wiki/GluLookAt_code
+-- ex ey ez is where the view is centered (lol not 'center')
+-- cx cy cz is where the view is looking at
+-- upx upy upz is the up vector
 function matrix_ffi:setLookAt(ex,ey,ez,cx,cy,cz,upx,upy,upz)
 --DEBUG:assert(#self.size_ == 2 and self.size_[1] == 4 and self.size_[2] == 4 and not self.rowmajor)
-	local zx,zy,zz = normalize(ex-cx,ey-cy,ez-cz)
-	local xx, xy, xz = normalize(cross(upx,upy,upz,zx,zy,zz))
-	local yx, yy, yz = normalize(cross(zx,zy,zz,xx,xy,xz))
-	self.ptr[0] = xx
-	self.ptr[4] = xy
-	self.ptr[8] = xz
+	local forwardx, forwardy, forwardz = normalize(cx-ex, cy-ey, cz-ez)
+	local sidex, sidey, sidez = normalize(cross(forwardx, forwardy, forwardz, upx, upy, upz))
+	upx, upy, upz = normalize(cross(sidex, sidey, sidez, forwardx, forwardy, forwardz))
+	self.ptr[0] = sidex
+	self.ptr[4] = sidey
+	self.ptr[8] = sidez
 	self.ptr[12] = 0
-	self.ptr[1] = yx
-	self.ptr[5] = yy
-	self.ptr[9] = yz
-	self.ptr[13] =0
-	self.ptr[2] = zx
-	self.ptr[6] = zy
-	self.ptr[10] = zz
+	self.ptr[1] = upx
+	self.ptr[5] = upy
+	self.ptr[9] = upz
+	self.ptr[13] = 0
+	self.ptr[2] = -forwardx
+	self.ptr[6] = -forwardy
+	self.ptr[10] = -forwardz
 	self.ptr[14] = 0
 	self.ptr[3] = 0
 	self.ptr[7] = 0
 	self.ptr[11] = 0
 	self.ptr[15] = 1
-	return self
+	return self:applyTranslate(-ex, -ey, -ez)
 end
 -- TODO optimize the in-place apply instead of this slow crap:
 function matrix_ffi:applyLookAt(...)
