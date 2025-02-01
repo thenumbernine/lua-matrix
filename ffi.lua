@@ -82,6 +82,9 @@ function matrix_ffi:init(src, ctype, size, rowmajor)
 	self.volume = self.size_:prod()
 
 	-- TODO make rowmajor default.  make colmajor optional? for glsl's sake? or just nah?
+	if rowmajor == nil and src and src.rowmajor ~= nil then
+		rowmajor = src.rowmajor
+	end
 	self.rowmajor = rowmajor
 	self.step = matrix_lua(self.size_)
 	if rowmajor then
@@ -875,7 +878,7 @@ function matrix_ffi:diag(i)
 	end, nil, self.ctype)
 end
 
-function matrix_ffi.eye(size, ctype)
+function matrix_ffi.eye(size, ctype, ...)
 	size = matrix_ffi(size)
 	if size.volume == 0 then return 1 end
 	local m,n
@@ -887,7 +890,7 @@ function matrix_ffi.eye(size, ctype)
 	ctype = ctype or size.ctype
 	return matrix_ffi.lambda({m, n}, function(i,j)
 		return i == j and 1 or 0
-	end, nil, ctype)
+	end, nil, ctype, ...)
 end
 
 ------------ LAPACKE SUPPORT ------------
@@ -933,20 +936,20 @@ function matrix_ffi.svd(A)
 	assert(matrix_ffi:isa(size))
 	local svdName = getLapackeNameForType(A.ctype, 'gesvd')
 	local m, n = size:unpack()
-	local U = matrix_ffi(nil, A.ctype, size)
+	local U = matrix_ffi(nil, A.ctype, size, A.rowmajor)
 --print('U.ctype', U.ctype)
 	-- TODO or just remove the 'complex' from the type, if it is there
 	local scalarType = scalarTypeForComplexType[A.ctype]
 	if not scalarType then
 		error("can't find scalar type for C type "..A.ctype)
 	end
-	local S = matrix_ffi(nil, scalarType, {m})
+	local S = matrix_ffi(nil, scalarType, {m}, A.rowmajor)
 --print('S.ctype', S.ctype)
-	local VT = matrix_ffi(nil, A.ctype, size)
+	local VT = matrix_ffi(nil, A.ctype, size, A.rowmajor)
 --print('VT.ctype', VT.ctype)
 	local superb = ffi.new(scalarType..'[2]') -- ... ???
 	lapacke[svdName](
-		lapacke.LAPACK_COL_MAJOR,	-- int matrix_layout,
+		A.rowmajor and lapacke.LAPACK_ROW_MAJOR or lapacke.LAPACK_COL_MAJOR,	-- int matrix_layout,
 		('A'):byte(),				-- char jobu,	-- all m columns (the left singluar vectors) are returned in array u.
 		('A'):byte(),				-- char jobvt,	-- all n rows (the right singular vectors) are returned in array vt.
 		m,							-- int m,
@@ -973,11 +976,11 @@ function matrix_ffi.eig(A, B)
 	assert(matrix_ffi:isa(size))
 	local m, n = size:unpack()
 	assert.eq(m, n)
-	B = B or size:eye(A.ctype)
-	local alpha = matrix_ffi(nil, A.ctype, {n})
-	local beta = matrix_ffi(nil, A.ctype, {n})
-	local VL = matrix_ffi(nil, A.ctype, size)
-	local VR = matrix_ffi(nil, A.ctype, size)
+	B = B or size:eye(A.ctype, A.rowmajor)
+	local alpha = matrix_ffi(nil, A.ctype, {n}, A.rowmajor)
+	local beta = matrix_ffi(nil, A.ctype, {n}, A.rowmajor)
+	local VL = matrix_ffi(nil, A.ctype, size, A.rowmajor)
+	local VR = matrix_ffi(nil, A.ctype, size, A.rowmajor)
 	local alphai
 	-- too bad, I was really hoping all lapack functions of matching suffixes has matching # of args
 	if A.ctype == 'complex float'
@@ -985,7 +988,7 @@ function matrix_ffi.eig(A, B)
 	then
 --print("cplx path")
 		lapacke[eigName](
-			lapacke.LAPACK_COL_MAJOR,	-- int matrix_layout,
+			A.rowmajor and lapacke.LAPACK_ROW_MAJOR or lapacke.LAPACK_COL_MAJOR,	-- int matrix_layout,
 			('V'):byte(),				-- char jobvl,
 			('V'):byte(),				-- char jobvr,
 			n,							-- int n,
@@ -1003,9 +1006,9 @@ function matrix_ffi.eig(A, B)
 	or A.ctype == 'double'
 	then
 --print("real path")
-		alphai = matrix_ffi(nil, A.ctype, {n})
+		alphai = matrix_ffi(nil, A.ctype, {n}, A.rowmajor)
 		lapacke[eigName](
-			lapacke.LAPACK_COL_MAJOR,	-- int matrix_layout,
+			A.rowmajor and lapacke.LAPACK_ROW_MAJOR or lapacke.LAPACK_COL_MAJOR,	-- int matrix_layout,
 			('V'):byte(),	-- char jobvl,
 			('V'):byte(),	-- char jobvr,
 			n,				-- int n,
@@ -1040,7 +1043,7 @@ function matrix_ffi.inv(A)
 	end
 	assert.eq(m, n)	-- needed for getri
 	local mn = math.min(m,n)
-	local ipiv = matrix_ffi(nil, 'int', {mn})
+	local ipiv = matrix_ffi(nil, 'int', {mn}, A.rowmajor)
 
 	-- ok lapacke is sometimes the ffi.cdef that 'table overflow's luajit
 	-- meaning i'm including too much in luajit
@@ -1059,7 +1062,7 @@ function matrix_ffi.inv(A)
 	local lapacke = require 'ffi.req' 'lapacke'
 	local getrfName = getLapackeNameForType(A.ctype, 'getrf')
 	lapacke[getrfName](
-		lapacke.LAPACK_COL_MAJOR,	-- int matrix_layout,
+		A.rowmajor and lapacke.LAPACK_ROW_MAJOR or lapacke.LAPACK_COL_MAJOR,	-- int matrix_layout,
 		m,							-- lapack_int m,
 		n, 							-- lapack_int n,
 		A.ptr,						-- float* a,
@@ -1067,7 +1070,7 @@ function matrix_ffi.inv(A)
 		ipiv.ptr) 					-- lapack_int* ipiv
 	local getriName = getLapackeNameForType(A.ctype, 'getri')
 	lapacke[getriName](
-		lapacke.LAPACK_COL_MAJOR,	-- int matrix_layout,
+		A.rowmajor and lapacke.LAPACK_ROW_MAJOR or lapacke.LAPACK_COL_MAJOR,	-- int matrix_layout,
 		n,							-- lapack_int n,
 		A.ptr,						-- float* a,
 		n,							-- int lda,
