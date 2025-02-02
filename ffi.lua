@@ -917,11 +917,25 @@ local lapackeLetterForType = {
 }
 
 local function getLapackeNameForType(ctype, name)
+	--[[ lookup doesn't always work because type-equality doesn't imply object-hash-equality
 	local letter = lapackeLetterForType[ctype]
+	local scalarType = scalarTypeForComplexType[ctype]
+	--]]
+	-- [[ so instead...
+	local letter, scalarType
+	local ffitype = ffi.typeof(ctype)
+	for checkctype, checkletter in pairs(lapackeLetterForType) do
+		if ffi.typeof(checkctype) == ffitype then
+			letter = checkletter
+			scalarType = assert.index(scalarTypeForComplexType, checkctype)
+			break
+		end
+	end
+	--]]
 	if not letter then
 		error("can't find the lapacke letter associated with the ctype "..tostring(ctype))
 	end
-	return 'LAPACKE_'..letter..name
+	return 'LAPACKE_'..letter..name, scalarType 
 end
 
 
@@ -936,12 +950,11 @@ function matrix_ffi.svd(A)
 --print('A.ctype', A.ctype)
 	local size = A:size()
 	assert(matrix_ffi:isa(size))
-	local svdName = getLapackeNameForType(A.ctype, 'gesvd')
+	local svdName, scalarType = getLapackeNameForType(A.ctype, 'gesvd')
 	local m, n = size:unpack()
 	local U = matrix_ffi(nil, A.ctype, size, A.rowmajor)
 --print('U.ctype', U.ctype)
 	-- TODO or just remove the 'complex' from the type, if it is there
-	local scalarType = scalarTypeForComplexType[A.ctype]
 	if not scalarType then
 		error("can't find scalar type for C type "..A.ctype)
 	end
@@ -985,8 +998,9 @@ function matrix_ffi.eig(A, B)
 	local VR = matrix_ffi(nil, A.ctype, size, A.rowmajor)
 	local alphai
 	-- too bad, I was really hoping all lapack functions of matching suffixes has matching # of args
-	if A.ctype == 'complex float'
-	or A.ctype == 'complex double'
+	local Affitype = ffi.typeof(A.ctype)
+	if Affitype == ffi.typeof'complex float'
+	or Affitype == ffi.typeof'complex double'
 	then
 --print("cplx path")
 		lapacke[eigName](
@@ -1004,8 +1018,8 @@ function matrix_ffi.eig(A, B)
 			n,							-- int ldvl,
 			VR.ptr,						-- float __complex__* vr,
 			n)							-- int ldvr
-	elseif A.ctype == 'float'
-	or A.ctype == 'double'
+	elseif Affitype == ffi.typeof'float'
+	or Affitype == ffi.typeof'double'
 	then
 --print("real path")
 		alphai = matrix_ffi(nil, A.ctype, {n}, A.rowmajor)
