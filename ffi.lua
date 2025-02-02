@@ -847,7 +847,7 @@ end
 function matrix_ffi:map(f)
 	return self:size():lambda(function(...)
 		return f(self(...), ...)
-	end)
+	end, nil, self.ctype, self.rowmajor)
 end
 
 -- TODO unpack into a single Lua table?
