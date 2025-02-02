@@ -188,7 +188,7 @@ function matrix_ffi.ones(dims, ctype)
 end
 
 -- could match matrix_lua except the matrix ref, if I copied it back over, but it might be slightly slower?
-function matrix_ffi.lambda(size, f, result, ctype, ...)
+function matrix_ffi.lambda(size, f, result, ctype, rowmajor)
 	--[[ this might be compatible with matrix.lambda
 	size = matrix_ffi:isa(size)
 		and size
@@ -208,24 +208,20 @@ function matrix_ffi.lambda(size, f, result, ctype, ...)
 	-- [[
 	ctype = ctype or size.ctype
 	-- if rowmajor wasn't provided then use size's rowmajor
-	if select('#', ...) == 0 then
-		local rowmajor = size.rowmajor
-		result = result or matrix_ffi(nil, ctype, size, rowmajor)
-	else
-		local rowmajor = ...
-		result = result or matrix_ffi(nil, ctype, size, rowmajor)
-	end
-	local rowmajor = result.rowmajor
-	local rptr = result.ptr
+	if rowmajor == nil then rowmajor = size.rowmajor end
+	result = result or matrix_ffi(nil, ctype, size, rowmajor)
 	if #size == 1 then
+		local rptr = result.ptr
 		for i=0,size[1]-1 do
 			rptr[i] = f(i+1)
 		end
+	-- [=[
 	elseif #size == 2 then
+		local rptr = result.ptr
 		local w = result.size_[1]
 		local h = result.size_[2]
 		local k = 0
-		if rowmajor then
+		if not rowmajor then
 			for j=0,w-1 do
 				for i=0,h-1 do
 					rptr[k] = f(i+1, j+1)
@@ -241,8 +237,10 @@ function matrix_ffi.lambda(size, f, result, ctype, ...)
 			end
 		end
 	else
-		-- sloooow
-		for i in result:iter() do
+	--]=]
+		-- sloooow ... and is it even working?
+		--for i in result:iter() do
+		for i in size:range() do
 			result[i] = assert(f(i:unpack()))
 		end
 	end
@@ -952,7 +950,7 @@ local function getLapackeNameForType(ctype, name)
 	if not letter then
 		error("can't find the lapacke letter associated with the ctype "..tostring(ctype))
 	end
-	return 'LAPACKE_'..letter..name, scalarType 
+	return 'LAPACKE_'..letter..name, scalarType
 end
 
 
