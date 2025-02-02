@@ -1049,13 +1049,16 @@ function matrix_ffi.inv(A)
 	-- meaning i'm including too much in luajit
 	-- so lets avoid it if possible ...
 	if m == 2 then
-		local a,b,c,d = A[1][1], A[2][1], A[1][2], A[2][2]
-		local det = a * d - b * c
+		local a = A.ptr[0 + 2 * 0]
+		local b = A.ptr[0 + 2 * 1]
+		local c = A.ptr[1 + 2 * 0]
+		local d = A.ptr[1 + 2 * 1]
+		local invdet = 1 / (a * d - b * c)
 		-- A_ij pos is i + m * j
-		A.ptr[0 + 2 * 0] = d / det
-		A.ptr[0 + 2 * 1] = -c / det
-		A.ptr[1 + 2 * 0] = -b / det
-		A.ptr[1 + 2 * 1] = a / det
+		A.ptr[0 + 2 * 0] = d * invdet
+		A.ptr[0 + 2 * 1] = -c * invdet
+		A.ptr[1 + 2 * 0] = -b * invdet
+		A.ptr[1 + 2 * 1] = a * invdet
 		return A
 	end
 
