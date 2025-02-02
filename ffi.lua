@@ -844,10 +844,12 @@ function matrix_ffi:T(...)
 end
 --]]
 
-function matrix_ffi:map(f)
+function matrix_ffi:map(f, ctype, rowmajor)
+	ctype = ctype or self.ctype
+	if rowmajor == nil then rowmajor = self.rowmajor end
 	return self:size():lambda(function(...)
 		return f(self(...), ...)
-	end, nil, self.ctype, self.rowmajor)
+	end, nil, ctype, rowmajor)
 end
 
 -- TODO unpack into a single Lua table?
