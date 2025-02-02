@@ -844,6 +844,23 @@ function matrix_ffi:T(...)
 end
 --]]
 
+function matrix_ffi:hermitian(...)
+	local result = self:transpose(...)
+	-- TODO a faster way to determine if the ctype is complex ...
+	if self.ctype:lower():find'complex' then
+		-- then make sure complex ctypes have their metamethods defined
+		requireComplex()
+		result = result:map(function(x)
+			return complex.conj(x)
+		end)
+	end
+	return result
+end
+
+function matrix_ffi:H(...)
+	return self:hermitian(...)
+end
+
 function matrix_ffi:map(f, ctype, rowmajor)
 	ctype = ctype or self.ctype
 	if rowmajor == nil then rowmajor = self.rowmajor end
