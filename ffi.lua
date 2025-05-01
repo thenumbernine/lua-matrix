@@ -40,7 +40,7 @@ end
 		I really am only using it with matrix_ffi.zeros, not planning on it being public
 --]]
 function matrix_ffi:init(src, ctype, size, rowmajor)
---DEBUG(matrix.ffi):print('matrix_ffi:init', src, ctype, size, rowmajor)
+--DEBUG:print('matrix_ffi:init', src, ctype, size, rowmajor)
 	if type(src) == 'table'
 	and not matrix_ffi:isa(src)
 	then
@@ -52,32 +52,32 @@ function matrix_ffi:init(src, ctype, size, rowmajor)
 	-- so I could make it a regular table
 	-- but why not a matrix_lua, so we get some similar functionality?
 	if matrix_ffi:isa(src) then
---DEBUG(matrix.ffi):print('...matrix_ffi:init getting size from src type matrix_ffi')
---DEBUG(matrix.ffi):print('...src:size():unpack() = ', src:size():unpack())
+--DEBUG:print('...matrix_ffi:init getting size from src type matrix_ffi')
+--DEBUG:print('...src:size():unpack() = ', src:size():unpack())
 		self.size_ = matrix_lua{src:size():unpack()}
---DEBUG(matrix.ffi):print('...self.size_ = ', self.size_)
+--DEBUG:print('...self.size_ = ', self.size_)
 	elseif matrix_lua:isa(src) then
---DEBUG(matrix.ffi):print('...matrix_ffi:init getting size from src type matrix_lua')
---DEBUG(matrix.ffi):print('...src:size() = ', src:size())
+--DEBUG:print('...matrix_ffi:init getting size from src type matrix_lua')
+--DEBUG:print('...src:size() = ', src:size())
 		self.size_ = src:size()
---DEBUG(matrix.ffi):print('...self.size_ = ', self.size_)
+--DEBUG:print('...self.size_ = ', self.size_)
 	elseif size then
 		if matrix_ffi:isa(size) then
---DEBUG(matrix.ffi):print('...matrix_ffi:init getting size from size type matrix_ffi')
+--DEBUG:print('...matrix_ffi:init getting size from size type matrix_ffi')
 			self.size_ = matrix_lua{size:unpack()}
 		elseif type(size) == 'table' then
---DEBUG(matrix.ffi):print('...matrix_ffi:init getting size from size type table')
+--DEBUG:print('...matrix_ffi:init getting size from size type table')
 			self.size_ = matrix_lua{table.unpack(size)}
 		else
---DEBUG(matrix.ffi):print('...matrix_ffi:init getting size from size type '..type(size))
+--DEBUG:print('...matrix_ffi:init getting size from size type '..type(size))
 			self.size_ = matrix_lua{size}
 		end
 	else
---DEBUG(matrix.ffi):print('...matrix_ffi:init getting size from nil size type '..type(size))
+--DEBUG:print('...matrix_ffi:init getting size from nil size type '..type(size))
 		assert.eq(src, nil)
 		self.size_ = matrix_lua{0}
 	end
---DEBUG(matrix.ffi):print('...size is', self.size_)
+--DEBUG:print('...size is', self.size_)
 
 	self.volume = self.size_:prod()
 
@@ -116,12 +116,12 @@ function matrix_ffi:init(src, ctype, size, rowmajor)
 	self.ptr = ffi.new(self.ctype..'[?]', math.max(self.volume,1))
 
 	if matrix_ffi:isa(src) then
---DEBUG(matrix.ffi):print('...matrix_ffi:init reading src as matrix_ffi')
+--DEBUG:print('...matrix_ffi:init reading src as matrix_ffi')
 		if src.ctype == self.ctype then
---DEBUG(matrix.ffi):print('...matrix_ffi:init reading src as matrix_ffi with matching ctype -- ffi.copy')
+--DEBUG:print('...matrix_ffi:init reading src as matrix_ffi with matching ctype -- ffi.copy')
 			ffi.copy(self.ptr, src.ptr, ffi.sizeof(self.ctype) * self.volume)
 		else
---DEBUG(matrix.ffi):print('...matrix_ffi:init reading src as matrix_ffi with differing ctype -- iterate and assign')
+--DEBUG:print('...matrix_ffi:init reading src as matrix_ffi with differing ctype -- iterate and assign')
 			local mn = math.min(self.volume, src.volume)
 			for i=0,mn-1 do
 				self.ptr[i] = src.ptr[i]
@@ -134,7 +134,7 @@ function matrix_ffi:init(src, ctype, size, rowmajor)
 			end
 		end
 	elseif src ~= nil then
---DEBUG(matrix.ffi):print('...matrix_ffi:init reading src as non-nil')
+--DEBUG:print('...matrix_ffi:init reading src as non-nil')
 		for i in src:iter() do
 			self[i] = src[i]
 		end
@@ -148,36 +148,36 @@ end
 -- sorry, for my matrix lib compat,
 -- you gotta set ctypes with matrix_ffi.real = whatever ctype
 function matrix_ffi.const(value, dims, ctype, ...)
---DEBUG(matrix.ffi):print('matrix_ffi.const', value, dims, ctype, ...)
+--DEBUG:print('matrix_ffi.const', value, dims, ctype, ...)
 	ctype = ctype or dims.ctype
 	assert.type(dims, 'table')
 	if not (ctype == nil or type(ctype) == 'string') then
 		error("got unknown ctype: "..require 'ext.tolua'(ctype))
 	end
---DEBUG(matrix.ffi):print('...matrix_ffi.const dims src', table.unpack(dims))
+--DEBUG:print('...matrix_ffi.const dims src', table.unpack(dims))
 	local dimsMat = matrix_ffi(dims)
---DEBUG(matrix.ffi):print('...matrix_ffi.const dims mat', dimsMat)
+--DEBUG:print('...matrix_ffi.const dims mat', dimsMat)
 	local result = matrix_ffi(nil, ctype, dimsMat, ...)
 	for i=0,result.volume-1 do
 		result.ptr[i] = value
 	end
---DEBUG(matrix.ffi):print('...matrix_ffi.const returning', result.size_)
+--DEBUG:print('...matrix_ffi.const returning', result.size_)
 	return result
 end
 
 -- matches matrix_lua except the matrix ref
 function matrix_ffi.zeros(...)
---DEBUG(matrix.ffi):print('matrix_ffi.zeros', ...)
+--DEBUG:print('matrix_ffi.zeros', ...)
 	if type((...)) == 'number' then
 		local result = matrix_ffi.const(0, {...})
---DEBUG(matrix.ffi):print('...matrix_ffi.zeros(', ..., ') returning', result.size_)
+--DEBUG:print('...matrix_ffi.zeros(', ..., ') returning', result.size_)
 		return result
 	else
 		local dims, ctype = ...
 		ctype = ctype or dims.ctype
 		assert(ctype == nil or type(ctype) == 'string')
 		local result = matrix_ffi.const(0, dims, ctype, select(3, ...))
---DEBUG(matrix.ffi):print('...matrix_ffi.zeros(', ..., ') returning', result.size_)
+--DEBUG:print('...matrix_ffi.zeros(', ..., ') returning', result.size_)
 		return result
 	end
 end
@@ -349,8 +349,8 @@ function matrix_ffi:__index(i)
 				if m.ctype:lower():find'complex' then
 					requireComplex()
 				end
---DEBUG(matrix.ffi): assert(m.volume <= self.volume)
---DEBUG(matrix.ffi): assert(0 <= m.volume * (i-1) and m.volume * (i-1) < self.volume)
+--DEBUG: assert(m.volume <= self.volume)
+--DEBUG: assert(0 <= m.volume * (i-1) and m.volume * (i-1) < self.volume)
 				m.ptr = self.ptr + m.volume * (i-1)
 				return m
 			--]]
