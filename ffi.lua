@@ -349,8 +349,9 @@ function matrix_ffi:__index(i)
 				if m.ctype:lower():find'complex' then
 					requireComplex()
 				end
---DEBUG: assert(m.volume <= self.volume)
---DEBUG: assert(0 <= m.volume * (i-1) and m.volume * (i-1) < self.volume)
+--DEBUG:assert.le(m.volume, self.volume)
+--DEBUG:assert.le(0, m.volume * (i-1))
+--DEBUG:assert.lt(m.volume * (i-1), self.volume)
 				m.ptr = self.ptr + m.volume * (i-1)
 				return m
 			--]]
@@ -1150,7 +1151,9 @@ local ident = matrix_ffi({
 
 -- optimized ... default mul of arbitrary-rank inner-product is verrrry slow
 function matrix_ffi:mul4x4(a,b)
---DEBUG:assert(#self.size_ == 2 and self.size_[1] == 4 and self.size_[2] == 4)
+--DEBUG:assert.eq(#self.size_, 2)
+--DEBUG:assert.eq(self.size_[1], 4)
+--DEBUG:assert.eq(self.size_[2], 4)
 --[[ no temp vars ... any perf diff?
 	-- also assert self isn't the table a or b, or else this will mess up
 	self.ptr[0] = a.ptr[0] * b.ptr[0] + a.ptr[4] * b.ptr[1] + a.ptr[8] * b.ptr[2] + a.ptr[12] * b.ptr[3]
@@ -1214,7 +1217,9 @@ function matrix_ffi:setIdent()
 	return self
 end
 function matrix_ffi:setOrtho(l,r,b,t,n,f)
---DEBUG:assert(#self.size_ == 2 and self.size_[1] == 4 and self.size_[2] == 4)
+--DEBUG:assert.eq(#self.size_, 2)
+--DEBUG:assert.eq(self.size_[1], 4)
+--DEBUG:assert.eq(self.size_[2], 4)
 	n = n or -1000
 	f = f or 1000
 	local invdx = 1 / (r - l)
@@ -1239,7 +1244,9 @@ function matrix_ffi:setOrtho(l,r,b,t,n,f)
 	return self
 end
 function matrix_ffi:applyOrtho(l,r,b,t,n,f)
---DEBUG:assert(#self.size_ == 2 and self.size_[1] == 4 and self.size_[2] == 4)
+--DEBUG:assert.eq(#self.size_, 2)
+--DEBUG:assert.eq(self.size_[1], 4)
+--DEBUG:assert.eq(self.size_[2], 4)
 	n = n or -1000
 	f = f or 1000
 	local invdx = 1 / (r - l)
@@ -1286,7 +1293,10 @@ function matrix_ffi:applyOrtho(l,r,b,t,n,f)
 end
 
 function matrix_ffi:setFrustum(l,r,b,t,n,f)
---DEBUG:assert(#self.size_ == 2 and self.size_[1] == 4 and self.size_[2] == 4 and not self.rowmajor)
+--DEBUG:assert.eq(#self.size_, 2)
+--DEBUG:assert.eq(self.size_[1], 4)
+--DEBUG:assert.eq(self.size_[2], 4)
+--DEBUG:assert(not self.rowmajor)
 	n = n or .1
 	f = f or 1000
 	local invdx = 1 / (r - l)
@@ -1311,7 +1321,10 @@ function matrix_ffi:setFrustum(l,r,b,t,n,f)
 	return self
 end
 function matrix_ffi:applyFrustum(l,r,b,t,n,f)
---DEBUG:assert(#self.size_ == 2 and self.size_[1] == 4 and self.size_[2] == 4 and not self.rowmajor)
+--DEBUG:assert.eq(#self.size_, 2)
+--DEBUG:assert.eq(self.size_[1], 4)
+--DEBUG:assert.eq(self.size_[2], 4)
+--DEBUG:assert(not self.rowmajor)
 	n = n or .1
 	f = f or 1000
 	local invdx = 1 / (r - l)
@@ -1379,7 +1392,10 @@ end
 -- cx cy cz is where the view is looking at
 -- upx upy upz is the up vector
 function matrix_ffi:setLookAt(ex,ey,ez,cx,cy,cz,upx,upy,upz)
---DEBUG:assert(#self.size_ == 2 and self.size_[1] == 4 and self.size_[2] == 4 and not self.rowmajor)
+--DEBUG:assert.eq(#self.size_, 2)
+--DEBUG:assert.eq(self.size_[1], 4)
+--DEBUG:assert.eq(self.size_[2], 4)
+--DEBUG:assert(not self.rowmajor)
 	local forwardx, forwardy, forwardz = normalize(cx-ex, cy-ey, cz-ez)
 	local sidex, sidey, sidez = normalize(cross(forwardx, forwardy, forwardz, upx, upy, upz))
 	upx, upy, upz = normalize(cross(sidex, sidey, sidez, forwardx, forwardy, forwardz))
@@ -1411,7 +1427,10 @@ end
 
 function matrix_ffi:setRotate(radians,x,y,z)
 	if not x then x,y,z = 0,0,1 end
---DEBUG:assert(#self.size_ == 2 and self.size_[1] == 4 and self.size_[2] == 4 and not self.rowmajor)
+--DEBUG:assert.eq(#self.size_, 2)
+--DEBUG:assert.eq(self.size_[1], 4)
+--DEBUG:assert.eq(self.size_[2], 4)
+--DEBUG:assert(not self.rowmajor)
 	local l = math.sqrt(x*x + y*y + z*z)
 	if l < 1e-20 then
 		x=1
@@ -1445,7 +1464,10 @@ function matrix_ffi:setRotate(radians,x,y,z)
 	return self
 end
 function matrix_ffi:applyRotate(radians,x,y,z)
---DEBUG:assert(#self.size_ == 2 and self.size_[1] == 4 and self.size_[2] == 4 and not self.rowmajor)
+--DEBUG:assert.eq(#self.size_, 2)
+--DEBUG:assert.eq(self.size_[1], 4)
+--DEBUG:assert.eq(self.size_[2], 4)
+--DEBUG:assert(not self.rowmajor)
 	if not x then x,y,z = 0,0,1 end
 	local l = math.sqrt(x*x + y*y + z*z)
 	if l < 1e-20 then
@@ -1505,7 +1527,10 @@ function matrix_ffi:setScale(x,y,z)
 	x = x or 1
 	y = y or 1
 	z = z or 1
---DEBUG:assert(#self.size_ == 2 and self.size_[1] == 4 and self.size_[2] == 4 and not self.rowmajor)
+--DEBUG:assert.eq(#self.size_, 2)
+--DEBUG:assert.eq(self.size_[1], 4)
+--DEBUG:assert.eq(self.size_[2], 4)
+--DEBUG:assert(not self.rowmajor)
 	self.ptr[0] = x
 	self.ptr[1] = 0
 	self.ptr[2] = 0
@@ -1525,7 +1550,10 @@ function matrix_ffi:setScale(x,y,z)
 	return self
 end
 function matrix_ffi:applyScale(x,y,z)
---DEBUG:assert(#self.size_ == 2 and self.size_[1] == 4 and self.size_[2] == 4 and not self.rowmajor)
+--DEBUG:assert.eq(#self.size_, 2)
+--DEBUG:assert.eq(self.size_[1], 4)
+--DEBUG:assert.eq(self.size_[2], 4)
+--DEBUG:assert(not self.rowmajor)
 	if x then
 		self.ptr[0] = self.ptr[0] * x
 		self.ptr[1] = self.ptr[1] * x
@@ -1551,7 +1579,10 @@ function matrix_ffi:setTranslate(x,y,z)
 	x = x or 0
 	y = y or 0
 	z = z or 0
---DEBUG:assert(#self.size_ == 2 and self.size_[1] == 4 and self.size_[2] == 4 and not self.rowmajor)
+--DEBUG:assert.eq(#self.size_, 2)
+--DEBUG:assert.eq(self.size_[1], 4)
+--DEBUG:assert.eq(self.size_[2], 4)
+--DEBUG:assert(not self.rowmajor)
 	self.ptr[0] = 1
 	self.ptr[1] = 0
 	self.ptr[2] = 0
@@ -1574,7 +1605,10 @@ function matrix_ffi:applyTranslate(x,y,z)
 	x = x or 0
 	y = y or 0
 	z = z or 0
---DEBUG:assert(#self.size_ == 2 and self.size_[1] == 4 and self.size_[2] == 4 and not self.rowmajor)
+--DEBUG:assert.eq(#self.size_, 2)
+--DEBUG:assert.eq(self.size_[1], 4)
+--DEBUG:assert.eq(self.size_[2], 4)
+--DEBUG:assert(not self.rowmajor)
 	self.ptr[12] = x * self.ptr[0] + y * self.ptr[4] + z * self.ptr[8] + self.ptr[12]
 	self.ptr[13] = x * self.ptr[1] + y * self.ptr[5] + z * self.ptr[9] + self.ptr[13]
 	self.ptr[14] = x * self.ptr[2] + y * self.ptr[6] + z * self.ptr[10] + self.ptr[14]
@@ -1585,11 +1619,15 @@ end
 -- based on the mesa impl: https://community.khronos.org/t/glupickmatrix-implementation/72008/2
 -- except that I'm going to assume x, y, dx, dy are normalized to [0,1] instead of [0,viewport-1] so that you don't have to also get and pass the viewport
 function matrix_ffi:setPickMatrix(...)
---DEBUG:assert(#self.size_ == 2 and self.size_[1] == 4 and self.size_[2] == 4)
+--DEBUG:assert.eq(#self.size_, 2)
+--DEBUG:assert.eq(self.size_[1], 4)
+--DEBUG:assert.eq(self.size_[2], 4)
 	return self:setIdent():applyPickMatrix(...)
 end
 function matrix_ffi:applyPickMatrix(x, y, dx, dy)
---DEBUG:assert(#self.size_ == 2 and self.size_[1] == 4 and self.size_[2] == 4)
+--DEBUG:assert.eq(#self.size_, 2)
+--DEBUG:assert.eq(self.size_[1], 4)
+--DEBUG:assert.eq(self.size_[2], 4)
 	if dx <= 0 or dy <= 0 then return self end
 	return self
 		:applyTranslate(
@@ -1604,7 +1642,9 @@ end
 
 -- based on mesa: https://github.com/Starlink/mesa/blob/master/src/glu/sgi/libutil/project.c
 function matrix_ffi:setPerspective(fovy, aspectRatio, zNear, zFar)
---DEBUG:assert(#self.size_ == 2 and self.size_[1] == 4 and self.size_[2] == 4)
+--DEBUG:assert.eq(#self.size_, 2)
+--DEBUG:assert.eq(self.size_[1], 4)
+--DEBUG:assert.eq(self.size_[2], 4)
 	local radians = math.rad(.5 * fovy)
 	local deltaZ = zFar - zNear
 	local sine = math.sin(radians)
