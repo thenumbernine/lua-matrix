@@ -1,0 +1,26 @@
+name = "matrix"
+files = {
+	["README.md"] = "matrix/README.md",
+	["curl.lua"] = "matrix/curl.lua",
+	["determinant.lua"] = "matrix/determinant.lua",
+	["div.lua"] = "matrix/div.lua",
+	["ffi.lua"] = "matrix/ffi.lua",
+	["grad.lua"] = "matrix/grad.lua",
+	["helmholtzinv.lua"] = "matrix/helmholtzinv.lua",
+	["index.lua"] = "matrix/index.lua",
+	["inverse.lua"] = "matrix/inverse.lua",
+	["lapinv.lua"] = "matrix/lapinv.lua",
+	["matrix-dev-1.rockspec"] = "matrix/matrix-dev-1.rockspec",
+	["matrix.lua"] = "matrix/matrix.lua",
+	["tests/compare-speed.lua"] = "matrix/tests/compare-speed.lua",
+	["tests/test-ffi-4x4.lua"] = "matrix/tests/test-ffi-4x4.lua",
+	["tests/test-ffi-lapacke.lua"] = "matrix/tests/test-ffi-lapacke.lua",
+	["tests/test.lua"] = "matrix/tests/test.lua",
+}
+deps = {
+	"complex",
+	"ext",
+	"ffi",
+	"gnuplot",
+	"solver",
+}
