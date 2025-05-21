@@ -539,6 +539,7 @@ function matrix_ffi.inner(a,b,metric,aj,bj, c)
 	end
 	local dega = a:degree()
 	local degb = b:degree()
+--DEBUG:print('dega', dega, 'degb', degb)
 	if aj then
 		assert(1 <= aj and aj <= dega)
 	else
@@ -552,6 +553,8 @@ function matrix_ffi.inner(a,b,metric,aj,bj, c)
 
 	-- some optimized pathways
 	if dega == 1 then
+		if not matrix_ffi:isa(a) then a = matrix_ffi(a) end
+		if not matrix_ffi:isa(b) then b = matrix_ffi(b) end
 		local n = a.size_[1]
 		if degb == 1 then
 			-- inner product
@@ -576,30 +579,68 @@ function matrix_ffi.inner(a,b,metric,aj,bj, c)
 			else
 				c = matrix_ffi(nil, a.ctype, {m}, a.rowmajor)
 			end
-			if (bj == 1 and not b.rowmajor) then
-				-- bj == 1:
-				-- n == b's height, i.e. 1st dim
-				-- m == b's width, i.e. 2nd dim
-				-- c_i = a_j b_ji = transpose-mul or row-vector mul
-				-- bj == 2:
-				-- n == b's width, i.e. 2nd dim
-				-- m == b's height, i.e. 1st dim
-				-- c_i = b_ij a_j
-				for i=0,m-1 do
-					local sum = 0
+
+--DEBUG:print'multiplying'
+--DEBUG:print(a)
+--DEBUG:print'and'
+--DEBUG:print(b)
+--DEBUG:print':'
+			if bj == 1 then	-- vec inner index1 of mat
+--DEBUG:print('contract with 1st index')
+				if not b.rowmajor then -- vec inner index1 of column-major mat = dot with cols
+--DEBUG:print('2nd arg is col major mat')
 					for j=0,n-1 do
-						sum = sum + a.ptr[i] * b.ptr[j + m * i]
+						local sum = 0
+						for i=0,m-1 do
+--DEBUG:print('reading lhs index', i, 'value', a.ptr[i])
+--DEBUG:print('reading rhs index', i, j, 'value', b.ptr[i + m * j])
+							sum = sum + a.ptr[i] * b.ptr[i + m * j]
+--DEBUG:print('sum is now', sum)
+						end
+						c.ptr[j] = sum
 					end
-					c.ptr[i] = sum
+				else	-- vec inner index1 of row-major mat = step by col width
+--DEBUG:print('2nd arg is row major mat')
+					for j=0,n-1 do
+						local sum = 0
+						for i=0,m-1 do
+--DEBUG:print('reading lhs index', i, 'value', a.ptr[i])
+--DEBUG:print('reading rhs index', i, j, 'value', b.ptr[j + m * i])
+							sum = sum + a.ptr[i] * b.ptr[j + m * i]
+--DEBUG:print('sum is now', sum)
+						end
+						c.ptr[j] = sum
+					end
+				end
+			elseif bj == 2 then	-- vec inner index2 of mat
+--DEBUG:print('contract with 2st index')
+				if b.rowmajor then	-- vec inner index2 of row-major mat = dot with rows
+--DEBUG:print('2nd arg is row major')
+					for i=0,m-1 do
+						local sum = 0
+						for j=0,n-1 do
+--DEBUG:print('reading lhs index', i, 'value', a.ptr[i])
+--DEBUG:print('reading rhs index', i, j, 'value', b.ptr[i + m * j])
+							sum = sum + a.ptr[i] * b.ptr[i + m * j]
+--DEBUG:print('sum is now', sum)
+						end
+						c.ptr[i] = sum
+					end
+				else	-- vec inner index2 of col-major mat = step by row width
+--DEBUG:print('2nd arg is col major')
+					for i=0,m-1 do
+						local sum = 0
+						for j=0,n-1 do
+--DEBUG:print('reading lhs index', i, 'value', a.ptr[i])
+--DEBUG:print('reading rhs index', i, j, 'value', b.ptr[j + m * i])
+							sum = sum + a.ptr[i] * b.ptr[j + m * i]
+--DEBUG:print('sum is now', sum)
+						end
+						c.ptr[i] = sum
+					end
 				end
 			else
-				for i=0,m-1 do
-					local sum = 0
-					for j=0,n-1 do
-						sum = sum + a.ptr[i] * b.ptr[j * m + i]
-					end
-					c.ptr[i] = sum
-				end
+				error'how did you get here?'
 			end
 			return c
 		end

@@ -27,7 +27,7 @@ local table = require 'ext.table'
 local range = require 'ext.range'
 local assert = require 'ext.assert'
 local matrix = require 'matrix.ffi'
-
+local matrix_lua = require 'matrix'
 local function zero()
 	return matrix{4,4}:zeros()
 end
@@ -48,6 +48,26 @@ for i=0,15 do
 	assert.eq(lambdaTest.ptr[i], i)
 end
 
+-- make sure it works with vector-mul:
+-- ... rhs col vec mul with matrix-ffi
+local result = lambdaTest * matrix{1,2,3,4}
+print('result', result)
+assert.eq(result, matrix{80, 90, 100, 110})
+-- ... rhs col vec mul with matrix-lua
+local result = lambdaTest * matrix_lua{1,2,3,4}
+print('result', result)
+assert.eq(result, matrix{80, 90, 100, 110})
+-- ... lhs row vec mul with matrix-ffi
+local result = matrix{1,2,3,4} * lambdaTest
+print('result', result)
+assert.eq(result, matrix{20, 60, 100, 140})
+-- ... lhs row vec mul with matrix-lua
+--[[ hmm I think this one is doing the matrix-lua __mul pathway
+local result = matrix_lua{1,2,3,4} * lambdaTest
+print('result', result)
+assert.eq(result, matrix{20, 60, 100, 140})
+--]]
+
 -- testing row-major storage
 local lambdaTest = matrix{4,4}:lambda(function(i, j)
 	return (j-1) + 4 * (i-1)	-- store sequential in rows
@@ -59,6 +79,26 @@ assert(lambdaTest.rowmajor)
 for i=0,15 do
 	assert.eq(lambdaTest.ptr[i], i)
 end
+
+-- make sure it works with vector-mul:
+-- ... rhs col vec mul with matrix-ffi
+local result = lambdaTest * matrix{1,2,3,4}
+print('result', result)
+assert.eq(result, matrix{20, 60, 100, 140})
+-- ... rhs col vec mul with matrix-lua
+local result = lambdaTest * matrix_lua{1,2,3,4}
+print('result', result)
+assert.eq(result, matrix{20, 60, 100, 140})
+-- ... lhs row vec mul with matrix-ffi
+local result = matrix{1,2,3,4} * lambdaTest
+print('result', result)
+assert.eq(result, matrix{80, 90, 100, 110})
+-- ... lhs row vec mul with matrix-lua
+--[[ hmm I think this one is doing the matrix-lua __mul pathway
+local result = matrix_lua{1,2,3,4} * lambdaTest
+print('result', result)
+assert.eq(result, matrix{80, 90, 100, 110})
+--]]
 
 do local j=1 -- for j=1,3 do	-- A_{j,k}
 	do local k=2 -- for k=j+1,4 do
