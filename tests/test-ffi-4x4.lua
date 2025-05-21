@@ -1,5 +1,9 @@
 #!/usr/bin/env luajit
 --[[
+just for terms sake:
+row-major = memory iterates rows first, then columns.  This is "C" standard for what you read when you list-initializ an array.
+col-major = memory iterates columns first, then rows.  This is OpenGL's standard.
+
 make sure all the :set, :apply, operator*, and :mul4x4 all work correctly ... for col and row majors?  :set and :apply only for col-majors, since they are supposed to be OpenGL replacement functions?
 
 [a b 0 0] [c d 0 0]   [ac ad+b 0 0]
@@ -31,12 +35,30 @@ local function eye()
 	return matrix{4,4}:eye()
 end
 
-local lambdaTest = matrix{4,4}:lambda(function(i,j)	-- (row, column) in traditional math notation order
-	return (j-1) + 4 * (i-1)	-- store sequential in columns
+-- testing default column-major storage
+-- matrix:lambda args are (row, column) in traditional math notation order
+local lambdaTest = matrix{4,4}:lambda(function(i, j)
+	return (i-1) + 4 * (j-1)	-- store sequential in columns
 end)
 print(lambdaTest)
+print('memory:', range(0,15):mapi(function(i) return lambdaTest.ptr[i] end):concat', ')
+print(lambdaTest.rowmajor and 'row' or 'column', 'major')
 assert(not lambdaTest.rowmajor)
-for i=0,15 do assert.eq(lambdaTest.ptr[i], i) end
+for i=0,15 do
+	assert.eq(lambdaTest.ptr[i], i)
+end
+
+-- testing row-major storage
+local lambdaTest = matrix{4,4}:lambda(function(i, j)
+	return (j-1) + 4 * (i-1)	-- store sequential in rows
+end, nil, nil, true)	-- 5th 'true' means row-major
+print(lambdaTest)
+print('memory:', range(0,15):mapi(function(i) return lambdaTest.ptr[i] end):concat', ')
+print(lambdaTest.rowmajor and 'row' or 'column', 'major')
+assert(lambdaTest.rowmajor)
+for i=0,15 do
+	assert.eq(lambdaTest.ptr[i], i)
+end
 
 do local j=1 -- for j=1,3 do	-- A_{j,k}
 	do local k=2 -- for k=j+1,4 do
@@ -129,7 +151,9 @@ for _,nf in ipairs{
 	assert.index(matrix, 'apply'..n)(C3, fs:unpack())	-- test ':apply' which optimizes the :set function
 	print'C3'
 	print(C3)
-	assert.eq(C1, C2, 'C1 vs C2')
-	assert.eq(C1, C3, 'C1 vs C3')
-	assert.eq(C2, C3, 'C2 vs C3')	-- meh
+	local function normcmp(a,b) return (a - b):norm() end
+	local eps = 1e-5	-- 1e-7 was too tight
+	assert.eqepsnorm(C1, C2, eps, normcmp, 'C1 vs C2')
+	assert.eqepsnorm(C1, C3, eps, normcmp, 'C1 vs C3')
+	assert.eqepsnorm(C2, C3, eps, normcmp, 'C2 vs C3')
 end
