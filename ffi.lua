@@ -1715,28 +1715,29 @@ function matrix_ffi:inv4x4()
 --DEBUG:assert.eq(self.size_[2], 4)
 --DEBUG:assert(not self.rowmajor)
 	local inv = matrix_ffi({4,4},'float'):zeros()
-	local m = self.ptr
-    inv.ptr[0]  =  m[5] * m[10] * m[15] - m[5] * m[11] * m[14] - m[9] * m[6] * m[15] + m[9] * m[7] * m[14] + m[13] * m[6] * m[11] - m[13] * m[7] * m[10]
-	inv.ptr[1]  = -m[1] * m[10] * m[15] + m[1] * m[11] * m[14] + m[9] * m[2] * m[15] - m[9] * m[3] * m[14] - m[13] * m[2] * m[11] + m[13] * m[3] * m[10]
-	inv.ptr[2]  =  m[1] * m[ 6] * m[15] - m[1] * m[ 7] * m[14] - m[5] * m[2] * m[15] + m[5] * m[3] * m[14] + m[13] * m[2] * m[ 7] - m[13] * m[3] * m[ 6]
-	inv.ptr[3]  = -m[1] * m[ 6] * m[11] + m[1] * m[ 7] * m[10] + m[5] * m[2] * m[11] - m[5] * m[3] * m[10] - m[ 9] * m[2] * m[ 7] + m[ 9] * m[3] * m[ 6]
-	inv.ptr[4]  = -m[4] * m[10] * m[15] + m[4] * m[11] * m[14] + m[8] * m[6] * m[15] - m[8] * m[7] * m[14] - m[12] * m[6] * m[11] + m[12] * m[7] * m[10]
-	inv.ptr[5]  =  m[0] * m[10] * m[15] - m[0] * m[11] * m[14] - m[8] * m[2] * m[15] + m[8] * m[3] * m[14] + m[12] * m[2] * m[11] - m[12] * m[3] * m[10]
-	inv.ptr[6]  = -m[0] * m[ 6] * m[15] + m[0] * m[ 7] * m[14] + m[4] * m[2] * m[15] - m[4] * m[3] * m[14] - m[12] * m[2] * m[ 7] + m[12] * m[3] * m[ 6]
-	inv.ptr[7]  =  m[0] * m[ 6] * m[11] - m[0] * m[ 7] * m[10] - m[4] * m[2] * m[11] + m[4] * m[3] * m[10] + m[ 8] * m[2] * m[ 7] - m[ 8] * m[3] * m[ 6]
-	inv.ptr[8]  =  m[4] * m[ 9] * m[15] - m[4] * m[11] * m[13] - m[8] * m[5] * m[15] + m[8] * m[7] * m[13] + m[12] * m[5] * m[11] - m[12] * m[7] * m[ 9]
-	inv.ptr[9]  = -m[0] * m[ 9] * m[15] + m[0] * m[11] * m[13] + m[8] * m[1] * m[15] - m[8] * m[3] * m[13] - m[12] * m[1] * m[11] + m[12] * m[3] * m[ 9]
-	inv.ptr[10] =  m[0] * m[ 5] * m[15] - m[0] * m[ 7] * m[13] - m[4] * m[1] * m[15] + m[4] * m[3] * m[13] + m[12] * m[1] * m[ 7] - m[12] * m[3] * m[ 5]
-	inv.ptr[11] = -m[0] * m[ 5] * m[11] + m[0] * m[ 7] * m[ 9] + m[4] * m[1] * m[11] - m[4] * m[3] * m[ 9] - m[ 8] * m[1] * m[ 7] + m[ 8] * m[3] * m[ 5]
-	inv.ptr[12] = -m[4] * m[ 9] * m[14] + m[4] * m[10] * m[13] + m[8] * m[5] * m[14] - m[8] * m[6] * m[13] - m[12] * m[5] * m[10] + m[12] * m[6] * m[ 9]
-	inv.ptr[13] =  m[0] * m[ 9] * m[14] - m[0] * m[10] * m[13] - m[8] * m[1] * m[14] + m[8] * m[2] * m[13] + m[12] * m[1] * m[10] - m[12] * m[2] * m[ 9]
-	inv.ptr[14] = -m[0] * m[ 5] * m[14] + m[0] * m[ 6] * m[13] + m[4] * m[1] * m[14] - m[4] * m[2] * m[13] - m[12] * m[1] * m[ 6] + m[12] * m[2] * m[ 5]
-	inv.ptr[15] =  m[0] * m[ 5] * m[10] - m[0] * m[ 6] * m[ 9] - m[4] * m[1] * m[10] + m[4] * m[2] * m[ 9] + m[ 8] * m[1] * m[ 6] - m[ 8] * m[2] * m[ 5]
-    local det = m[0] * inv[0] + m[1] * inv[4] + m[2] * inv[8] + m[3] * inv[12]
+	local ptr = self.ptr
+    local invptr = inv.ptr
+	invptr[0]  =  ptr[5] * ptr[10] * ptr[15] - ptr[5] * ptr[11] * ptr[14] - ptr[9] * ptr[6] * ptr[15] + ptr[9] * ptr[7] * ptr[14] + ptr[13] * ptr[6] * ptr[11] - ptr[13] * ptr[7] * ptr[10]
+	invptr[1]  = -ptr[1] * ptr[10] * ptr[15] + ptr[1] * ptr[11] * ptr[14] + ptr[9] * ptr[2] * ptr[15] - ptr[9] * ptr[3] * ptr[14] - ptr[13] * ptr[2] * ptr[11] + ptr[13] * ptr[3] * ptr[10]
+	invptr[2]  =  ptr[1] * ptr[ 6] * ptr[15] - ptr[1] * ptr[ 7] * ptr[14] - ptr[5] * ptr[2] * ptr[15] + ptr[5] * ptr[3] * ptr[14] + ptr[13] * ptr[2] * ptr[ 7] - ptr[13] * ptr[3] * ptr[ 6]
+	invptr[3]  = -ptr[1] * ptr[ 6] * ptr[11] + ptr[1] * ptr[ 7] * ptr[10] + ptr[5] * ptr[2] * ptr[11] - ptr[5] * ptr[3] * ptr[10] - ptr[ 9] * ptr[2] * ptr[ 7] + ptr[ 9] * ptr[3] * ptr[ 6]
+	invptr[4]  = -ptr[4] * ptr[10] * ptr[15] + ptr[4] * ptr[11] * ptr[14] + ptr[8] * ptr[6] * ptr[15] - ptr[8] * ptr[7] * ptr[14] - ptr[12] * ptr[6] * ptr[11] + ptr[12] * ptr[7] * ptr[10]
+	invptr[5]  =  ptr[0] * ptr[10] * ptr[15] - ptr[0] * ptr[11] * ptr[14] - ptr[8] * ptr[2] * ptr[15] + ptr[8] * ptr[3] * ptr[14] + ptr[12] * ptr[2] * ptr[11] - ptr[12] * ptr[3] * ptr[10]
+	invptr[6]  = -ptr[0] * ptr[ 6] * ptr[15] + ptr[0] * ptr[ 7] * ptr[14] + ptr[4] * ptr[2] * ptr[15] - ptr[4] * ptr[3] * ptr[14] - ptr[12] * ptr[2] * ptr[ 7] + ptr[12] * ptr[3] * ptr[ 6]
+	invptr[7]  =  ptr[0] * ptr[ 6] * ptr[11] - ptr[0] * ptr[ 7] * ptr[10] - ptr[4] * ptr[2] * ptr[11] + ptr[4] * ptr[3] * ptr[10] + ptr[ 8] * ptr[2] * ptr[ 7] - ptr[ 8] * ptr[3] * ptr[ 6]
+	invptr[8]  =  ptr[4] * ptr[ 9] * ptr[15] - ptr[4] * ptr[11] * ptr[13] - ptr[8] * ptr[5] * ptr[15] + ptr[8] * ptr[7] * ptr[13] + ptr[12] * ptr[5] * ptr[11] - ptr[12] * ptr[7] * ptr[ 9]
+	invptr[9]  = -ptr[0] * ptr[ 9] * ptr[15] + ptr[0] * ptr[11] * ptr[13] + ptr[8] * ptr[1] * ptr[15] - ptr[8] * ptr[3] * ptr[13] - ptr[12] * ptr[1] * ptr[11] + ptr[12] * ptr[3] * ptr[ 9]
+	invptr[10] =  ptr[0] * ptr[ 5] * ptr[15] - ptr[0] * ptr[ 7] * ptr[13] - ptr[4] * ptr[1] * ptr[15] + ptr[4] * ptr[3] * ptr[13] + ptr[12] * ptr[1] * ptr[ 7] - ptr[12] * ptr[3] * ptr[ 5]
+	invptr[11] = -ptr[0] * ptr[ 5] * ptr[11] + ptr[0] * ptr[ 7] * ptr[ 9] + ptr[4] * ptr[1] * ptr[11] - ptr[4] * ptr[3] * ptr[ 9] - ptr[ 8] * ptr[1] * ptr[ 7] + ptr[ 8] * ptr[3] * ptr[ 5]
+	invptr[12] = -ptr[4] * ptr[ 9] * ptr[14] + ptr[4] * ptr[10] * ptr[13] + ptr[8] * ptr[5] * ptr[14] - ptr[8] * ptr[6] * ptr[13] - ptr[12] * ptr[5] * ptr[10] + ptr[12] * ptr[6] * ptr[ 9]
+	invptr[13] =  ptr[0] * ptr[ 9] * ptr[14] - ptr[0] * ptr[10] * ptr[13] - ptr[8] * ptr[1] * ptr[14] + ptr[8] * ptr[2] * ptr[13] + ptr[12] * ptr[1] * ptr[10] - ptr[12] * ptr[2] * ptr[ 9]
+	invptr[14] = -ptr[0] * ptr[ 5] * ptr[14] + ptr[0] * ptr[ 6] * ptr[13] + ptr[4] * ptr[1] * ptr[14] - ptr[4] * ptr[2] * ptr[13] - ptr[12] * ptr[1] * ptr[ 6] + ptr[12] * ptr[2] * ptr[ 5]
+	invptr[15] =  ptr[0] * ptr[ 5] * ptr[10] - ptr[0] * ptr[ 6] * ptr[ 9] - ptr[4] * ptr[1] * ptr[10] + ptr[4] * ptr[2] * ptr[ 9] + ptr[ 8] * ptr[1] * ptr[ 6] - ptr[ 8] * ptr[2] * ptr[ 5]
+    local det = ptr[0] * invptr[0] + ptr[1] * invptr[4] + ptr[2] * invptr[8] + ptr[3] * invptr[12]
     if det == 0 then return false end
     local invdet = 1 / det
 	for i=0,15 do
-		inv.ptr[i] = inv.ptr[i] * invdet
+		invptr[i] = invptr[i] * invdet
 	end
     return inv
 end
