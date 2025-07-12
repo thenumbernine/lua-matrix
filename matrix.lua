@@ -3,7 +3,7 @@ this isn't really a matrix library
 more of a n-ary array of numbers library.  vector, matrix.
 not necessarily tensors, as they imply invariance to coordinate transform, which is one assumption too far for a title.
 --]]
-
+local assert = require 'ext.assert'
 local class = require 'ext.class'
 local table = require 'ext.table'
 local _ = require 'matrix.index'
@@ -39,7 +39,7 @@ function matrix.const(value, dim, ...)
 	if type(dim) == 'table' then
 		return matrix.const(value, table.unpack(dim))
 	else
-		assert(type(dim) == 'number')
+		assert.type(dim, 'number')
 		for i=1,dim do
 			if subdegree == 0 then
 				self[i] = value
@@ -147,7 +147,7 @@ function matrix:size(sizes, offset)
 	else
 	--]]
 		for i=2,#self do
-			assert(#self[1] == #self[i], "matrix had a bad dimension")
+			assert.eq(#self[1], #self[i], "matrix had a bad dimension")
 		end
 		self[1]:size(sizes, offset+1)
 	end
@@ -359,15 +359,28 @@ function matrix.inner(a,b,metric,aj,bj)
 	elseif isScalar(b) then
 		return a:scale(b)
 	end
-	aj = aj or a:degree()
-	bj = bj or 1
+	local dega = a:degree()
+	local degb = b:degree()
+--DEBUG:print('dega', dega, 'degb', degb)
+	if aj then
+		assert.le(1, aj)
+		assert.le(aj, dega)
+	else
+		aj = dega
+	end
+	if bj then
+		assert.le(1, bj)
+		assert.le(bj, degb)
+	else
+		bj = 1
+	end
 	local sa = a:size()
 	local sb = b:size()
 	local ssa = table(sa)
 	local saj = ssa:remove(aj)
 	local ssb = table(sb)
 	local sbj = ssb:remove(bj)
-	assert(saj == sbj, "inner dimensions must be equal")
+	assert.eq(saj, sbj, "inner dimensions must be equal")
 	local sc = table(ssa):append(ssb)
 	return matrix.lambda(sc, function(...)
 		local i = {...}
@@ -383,8 +396,8 @@ function matrix.inner(a,b,metric,aj,bj)
 					ib[bj] = v
 					local ai = a[ia]
 					local bi = b[ib]
-					--assert(type(ai) == 'number')
-					--assert(type(bi) == 'number')
+					--assert.type(ai, 'number')
+					--assert.type(bi, 'number')
 					sum = sum + metric[u][v] * ai * bi
 				end
 			end
@@ -394,8 +407,8 @@ function matrix.inner(a,b,metric,aj,bj)
 				ib[bj] = u
 				local ai = a[ia]
 				local bi = b[ib]
-				--assert(type(ai) == 'number')
-				--assert(type(bi) == 'number')
+				--assert.type(ai, 'number')
+				--assert.type(bi, 'number')
 				sum = sum + ai * bi
 			end
 		end
@@ -411,7 +424,7 @@ matrix.__mul = matrix.inner
 
 -- scalar division
 function matrix.__div(a,b)
-	assert(matrix:isa(a))
+	assert.is(a, matrix)
 	assert(isScalar(b))
 	return matrix.lambda(a:size(), function(...)
 		return a(...) / b
@@ -433,7 +446,7 @@ function matrix.emul(a,b)
 			return a * b(...)
 		end)
 	end
-	assert(a:size() == b:size())
+	assert.eq(a:size(), b:size())
 	return a:size():lambda(function(...)
 		return a(...) * b(...)
 	end)
@@ -454,7 +467,7 @@ function matrix.ediv(a,b)
 			return a / b(...)
 		end)
 	end
-	assert(a:size() == b:size())
+	assert.eq(a:size(), b:size())
 	return a:size():lambda(function(...)
 		return a(...) / b(...)
 	end)
@@ -475,7 +488,7 @@ function matrix.epow(a,b)
 			return a ^ b(...)
 		end)
 	end
-	assert(a:size() == b:size())
+	assert.eq(a:size(), b:size())
 	return a:size():lambda(function(...)
 		return a(...) ^ b(...)
 	end)
@@ -528,7 +541,7 @@ end
 
 -- what is the name of this operation? it's dot for vectors.  it and itself on matrices is the Frobenius norm.
 function matrix.dot(a,b)
-	assert(#a == #b)
+	assert.eq(#a, #b)
 	local sum = 0
 	for i=1,#a do
 		local ai = a[i]

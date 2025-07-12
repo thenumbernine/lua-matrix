@@ -330,7 +330,8 @@ function matrix_ffi:__index(i)
 				if i < 1 or i > self.size_[1] then
 					error("got OOB index "..tostring(i)..", should be within 1 and "..tostring(self.size_[1]))
 				end
-				assert(1 <= i and i <= self.size_[1])
+				assert.le(1, i)
+				assert.le(i, self.size_[1])
 				-- TODO this is all a copy of matrix_ffi:init
 				-- how about instead I work in this ptr as an arg in place of 'src' somehow ...
 				-- or a better TODO would be to just throw out this whole class and replace it with a pure-ffi class that only used 0-index access and didn't have any Lua tables
@@ -541,12 +542,14 @@ function matrix_ffi.inner(a,b,metric,aj,bj, c)
 	local degb = b:degree()
 --DEBUG:print('dega', dega, 'degb', degb)
 	if aj then
-		assert(1 <= aj and aj <= dega)
+		assert.le(1, aj)
+		assert.le(aj, dega)
 	else
 		aj = dega
 	end
 	if bj then
-		assert(1 <= bj and bj <= degb)
+		assert.le(1, bj)
+		assert.le(bj, degb)
 	else
 		bj = 1
 	end
