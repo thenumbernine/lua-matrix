@@ -1469,23 +1469,12 @@ function matrix_ffi:applyLookAt(...)
 	)
 end
 
-function matrix_ffi:setRotateCIS(c, s, x, y, z)
-	if not x then x,y,z = 0,0,1 end
+-- axis is expected to be unit
+function matrix_ffi:setRotateCosSinUnit(c, s, x, y, z)
 --DEBUG:assert.eq(#self.size_, 2)
 --DEBUG:assert.eq(self.size_[1], 4)
 --DEBUG:assert.eq(self.size_[2], 4)
 --DEBUG:assert(not self.rowmajor)
-	local l = math.sqrt(x*x + y*y + z*z)
-	if l < 1e-20 then
-		x=1
-		y=0
-		z=0
-	else
-		local il = 1/l
-		x=x*il
-		y=y*il
-		z=z*il
-	end
 	local ic = 1 - c
 	self.ptr[0] = c + x*x*ic
 	self.ptr[4] = x*y*ic - z*s
@@ -1505,25 +1494,12 @@ function matrix_ffi:setRotateCIS(c, s, x, y, z)
 	self.ptr[15] = 1
 	return self
 end
-function matrix_ffi:applyRotateCIS(c, s, x, y, z)
+function matrix_ffi:applyRotateCosSinUnit(c, s, x, y, z)
 --DEBUG:assert.eq(#self.size_, 2)
 --DEBUG:assert.eq(self.size_[1], 4)
 --DEBUG:assert.eq(self.size_[2], 4)
 --DEBUG:assert(not self.rowmajor)
-	if not x then x,y,z = 0,0,1 end
-	local l = math.sqrt(x*x + y*y + z*z)
-	if l < 1e-20 then
-		x=1
-		y=0
-		z=0
-	else
-		local il = 1/l
-		x=x*il
-		y=y*il
-		z=z*il
-	end
 	local ic = 1 - c
-
 	local a0 = self.ptr[0]
 	local a1 = self.ptr[1]
 	local a2 = self.ptr[2]
@@ -1563,11 +1539,52 @@ function matrix_ffi:applyRotateCIS(c, s, x, y, z)
 	return self
 end
 
+-- axis is optional
+-- if axis is not provided or if it is near-zero length, defaults to 0,0,1
+function matrix_ffi:setRotateCosSin(c, s, x, y, z)
+	if not x then x,y,z = 0,0,1 end
+--DEBUG:assert.eq(#self.size_, 2)
+--DEBUG:assert.eq(self.size_[1], 4)
+--DEBUG:assert.eq(self.size_[2], 4)
+--DEBUG:assert(not self.rowmajor)
+	local l = math.sqrt(x*x + y*y + z*z)
+	if l < 1e-20 then
+		x=1
+		y=0
+		z=0
+	else
+		local il = 1/l
+		x=x*il
+		y=y*il
+		z=z*il
+	end
+	return self:setRotateCosSinUnit(c, s, x, y, z)
+end
+function matrix_ffi:applyRotateCosSin(c, s, x, y, z)
+--DEBUG:assert.eq(#self.size_, 2)
+--DEBUG:assert.eq(self.size_[1], 4)
+--DEBUG:assert.eq(self.size_[2], 4)
+--DEBUG:assert(not self.rowmajor)
+	if not x then x,y,z = 0,0,1 end
+	local l = math.sqrt(x*x + y*y + z*z)
+	if l < 1e-20 then
+		x=1
+		y=0
+		z=0
+	else
+		local il = 1/l
+		x=x*il
+		y=y*il
+		z=z*il
+	end
+	return self:applyRotateCosSinUnit(c, s, x, y, z)
+end
+
 function matrix_ffi:setRotate(radians, ...)
-	return self:setRotateCIS(math.cos(radians), math.sin(radians), ...)
+	return self:setRotateCosSin(math.cos(radians), math.sin(radians), ...)
 end
 function matrix_ffi:applyRotate(radians, ...)
-	return self:applyRotateCIS(math.cos(radians), math.sin(radians), ...)
+	return self:applyRotateCosSin(math.cos(radians), math.sin(radians), ...)
 end
 
 function matrix_ffi:setScale(x,y,z)
