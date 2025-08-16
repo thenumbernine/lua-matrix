@@ -1469,7 +1469,7 @@ function matrix_ffi:applyLookAt(...)
 	)
 end
 
-function matrix_ffi:setRotate(radians,x,y,z)
+function matrix_ffi:setRotateCIS(c, s, x, y, z)
 	if not x then x,y,z = 0,0,1 end
 --DEBUG:assert.eq(#self.size_, 2)
 --DEBUG:assert.eq(self.size_[1], 4)
@@ -1486,8 +1486,6 @@ function matrix_ffi:setRotate(radians,x,y,z)
 		y=y*il
 		z=z*il
 	end
-	local c = math.cos(radians)
-	local s = math.sin(radians)
 	local ic = 1 - c
 	self.ptr[0] = c + x*x*ic
 	self.ptr[4] = x*y*ic - z*s
@@ -1507,7 +1505,7 @@ function matrix_ffi:setRotate(radians,x,y,z)
 	self.ptr[15] = 1
 	return self
 end
-function matrix_ffi:applyRotate(radians,x,y,z)
+function matrix_ffi:applyRotateCIS(c, s, x, y, z)
 --DEBUG:assert.eq(#self.size_, 2)
 --DEBUG:assert.eq(self.size_[1], 4)
 --DEBUG:assert.eq(self.size_[2], 4)
@@ -1524,8 +1522,6 @@ function matrix_ffi:applyRotate(radians,x,y,z)
 		y=y*il
 		z=z*il
 	end
-	local c = math.cos(radians)
-	local s = math.sin(radians)
 	local ic = 1 - c
 
 	local a0 = self.ptr[0]
@@ -1565,6 +1561,13 @@ function matrix_ffi:applyRotate(radians,x,y,z)
 	self.ptr[11] = a3 * b8 + a7 * b9 + a11 * b10
 
 	return self
+end
+
+function matrix_ffi:setRotate(radians, ...)
+	return self:setRotateCIS(math.cos(radians), math.sin(radians), ...)
+end
+function matrix_ffi:applyRotate(radians, ...)
+	return self:applyRotateCIS(math.cos(radians), math.sin(radians), ...)
 end
 
 function matrix_ffi:setScale(x,y,z)
