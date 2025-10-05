@@ -1739,7 +1739,7 @@ function matrix_ffi:inv4x4()
 --DEBUG:assert(not self.rowmajor)
 	local inv = matrix_ffi({4,4},'float'):zeros()
 	local ptr = self.ptr
-    local invptr = inv.ptr
+	local invptr = inv.ptr
 	invptr[0]  =  ptr[5] * ptr[10] * ptr[15] - ptr[5] * ptr[11] * ptr[14] - ptr[9] * ptr[6] * ptr[15] + ptr[9] * ptr[7] * ptr[14] + ptr[13] * ptr[6] * ptr[11] - ptr[13] * ptr[7] * ptr[10]
 	invptr[1]  = -ptr[1] * ptr[10] * ptr[15] + ptr[1] * ptr[11] * ptr[14] + ptr[9] * ptr[2] * ptr[15] - ptr[9] * ptr[3] * ptr[14] - ptr[13] * ptr[2] * ptr[11] + ptr[13] * ptr[3] * ptr[10]
 	invptr[2]  =  ptr[1] * ptr[ 6] * ptr[15] - ptr[1] * ptr[ 7] * ptr[14] - ptr[5] * ptr[2] * ptr[15] + ptr[5] * ptr[3] * ptr[14] + ptr[13] * ptr[2] * ptr[ 7] - ptr[13] * ptr[3] * ptr[ 6]
@@ -1756,13 +1756,73 @@ function matrix_ffi:inv4x4()
 	invptr[13] =  ptr[0] * ptr[ 9] * ptr[14] - ptr[0] * ptr[10] * ptr[13] - ptr[8] * ptr[1] * ptr[14] + ptr[8] * ptr[2] * ptr[13] + ptr[12] * ptr[1] * ptr[10] - ptr[12] * ptr[2] * ptr[ 9]
 	invptr[14] = -ptr[0] * ptr[ 5] * ptr[14] + ptr[0] * ptr[ 6] * ptr[13] + ptr[4] * ptr[1] * ptr[14] - ptr[4] * ptr[2] * ptr[13] - ptr[12] * ptr[1] * ptr[ 6] + ptr[12] * ptr[2] * ptr[ 5]
 	invptr[15] =  ptr[0] * ptr[ 5] * ptr[10] - ptr[0] * ptr[ 6] * ptr[ 9] - ptr[4] * ptr[1] * ptr[10] + ptr[4] * ptr[2] * ptr[ 9] + ptr[ 8] * ptr[1] * ptr[ 6] - ptr[ 8] * ptr[2] * ptr[ 5]
-    local det = ptr[0] * invptr[0] + ptr[1] * invptr[4] + ptr[2] * invptr[8] + ptr[3] * invptr[12]
-    if det == 0 then return false end
-    local invdet = 1 / det
+	local det = ptr[0] * invptr[0] + ptr[1] * invptr[4] + ptr[2] * invptr[8] + ptr[3] * invptr[12]
+	if det == 0 then return false end
+	local invdet = 1 / det
 	for i=0,15 do
 		invptr[i] = invptr[i] * invdet
 	end
-    return inv
+	return inv
+end
+
+-- but I don't like allocating and returning a new matrix,
+-- so here's inv4x4 but in-place
+function matrix_ffi:applyInv4x4()
+--DEBUG:assert.eq(#self.size_, 2)
+--DEBUG:assert.eq(self.size_[1], 4)
+--DEBUG:assert.eq(self.size_[2], 4)
+--DEBUG:assert(not self.rowmajor)
+	local ptr = self.ptr
+
+	local a0  = ptr[0]
+	local a1  = ptr[1]
+	local a2  = ptr[2]
+	local a3  = ptr[3]
+	local a4  = ptr[4]
+	local a5  = ptr[5]
+	local a6  = ptr[6]
+	local a7  = ptr[7]
+	local a8  = ptr[8]
+	local a9  = ptr[9]
+	local a10 = ptr[10]
+	local a11 = ptr[11]
+	local a12 = ptr[12]
+	local a13 = ptr[13]
+	local a14 = ptr[14]
+	local a15 = ptr[15]
+
+	ptr[0]  =  a5 * a10 * a15 - a5 * a11 * a14 - a9 * a6 * a15 + a9 * a7 * a14 + a13 * a6 * a11 - a13 * a7 * a10
+	ptr[1]  = -a1 * a10 * a15 + a1 * a11 * a14 + a9 * a2 * a15 - a9 * a3 * a14 - a13 * a2 * a11 + a13 * a3 * a10
+	ptr[2]  =  a1 * a6 * a15 - a1 * a7 * a14 - a5 * a2 * a15 + a5 * a3 * a14 + a13 * a2 * a7 - a13 * a3 * a6
+	ptr[3]  = -a1 * a6 * a11 + a1 * a7 * a10 + a5 * a2 * a11 - a5 * a3 * a10 - a9 * a2 * a7 + a9 * a3 * a6
+	ptr[4]  = -a4 * a10 * a15 + a4 * a11 * a14 + a8 * a6 * a15 - a8 * a7 * a14 - a12 * a6 * a11 + a12 * a7 * a10
+	ptr[5]  =  a0 * a10 * a15 - a0 * a11 * a14 - a8 * a2 * a15 + a8 * a3 * a14 + a12 * a2 * a11 - a12 * a3 * a10
+	ptr[6]  = -a0 * a6 * a15 + a0 * a7 * a14 + a4 * a2 * a15 - a4 * a3 * a14 - a12 * a2 * a7 + a12 * a3 * a6
+	ptr[7]  =  a0 * a6 * a11 - a0 * a7 * a10 - a4 * a2 * a11 + a4 * a3 * a10 + a8 * a2 * a7 - a8 * a3 * a6
+	ptr[8]  =  a4 * a9 * a15 - a4 * a11 * a13 - a8 * a5 * a15 + a8 * a7 * a13 + a12 * a5 * a11 - a12 * a7 * a9
+	ptr[9]  = -a0 * a9 * a15 + a0 * a11 * a13 + a8 * a1 * a15 - a8 * a3 * a13 - a12 * a1 * a11 + a12 * a3 * a9
+	ptr[10] =  a0 * a5 * a15 - a0 * a7 * a13 - a4 * a1 * a15 + a4 * a3 * a13 + a12 * a1 * a7 - a12 * a3 * a5
+	ptr[11] = -a0 * a5 * a11 + a0 * a7 * a9 + a4 * a1 * a11 - a4 * a3 * a9 - a8 * a1 * a7 + a8 * a3 * a5
+	ptr[12] = -a4 * a9 * a14 + a4 * a10 * a13 + a8 * a5 * a14 - a8 * a6 * a13 - a12 * a5 * a10 + a12 * a6 * a9
+	ptr[13] =  a0 * a9 * a14 - a0 * a10 * a13 - a8 * a1 * a14 + a8 * a2 * a13 + a12 * a1 * a10 - a12 * a2 * a9
+	ptr[14] = -a0 * a5 * a14 + a0 * a6 * a13 + a4 * a1 * a14 - a4 * a2 * a13 - a12 * a1 * a6 + a12 * a2 * a5
+	ptr[15] =  a0 * a5 * a10 - a0 * a6 * a9 - a4 * a1 * a10 + a4 * a2 * a9 + a8 * a1 * a6 - a8 * a2 * a5
+
+	local det = a0 * ptr[0] + a1 * ptr[4] + a2 * ptr[8] + a3 * ptr[12]
+	if det == 0 then
+		-- if this is in-place then do we error or return an extra flag or something?
+		for i=0,15 do
+			ptr[i] = 0/0
+		end
+		return self, 'singular'
+	end
+
+	local invdet = 1 / det
+	for i=0,15 do
+		ptr[i] = ptr[i] * invdet
+	end
+
+	return self
 end
 
 return matrix_ffi
