@@ -1730,96 +1730,48 @@ function matrix_ffi:applyPerspective(...)
 	)
 end
 
--- returns a new matrix which is an inverse of this 4x4 matrix
+-- calculates the inverse of 'src' or 'self' and stores it in 'self'
 -- https://stackoverflow.com/a/1148405
-function matrix_ffi:inv4x4()
+function matrix_ffi:inv4x4(src)
 --DEBUG:assert.eq(#self.size_, 2)
 --DEBUG:assert.eq(self.size_[1], 4)
 --DEBUG:assert.eq(self.size_[2], 4)
 --DEBUG:assert(not self.rowmajor)
-	local inv = matrix_ffi({4,4},'float'):zeros()
-	local ptr = self.ptr
-	local invptr = inv.ptr
-	invptr[0]  =  ptr[5] * ptr[10] * ptr[15] - ptr[5] * ptr[11] * ptr[14] - ptr[9] * ptr[6] * ptr[15] + ptr[9] * ptr[7] * ptr[14] + ptr[13] * ptr[6] * ptr[11] - ptr[13] * ptr[7] * ptr[10]
-	invptr[1]  = -ptr[1] * ptr[10] * ptr[15] + ptr[1] * ptr[11] * ptr[14] + ptr[9] * ptr[2] * ptr[15] - ptr[9] * ptr[3] * ptr[14] - ptr[13] * ptr[2] * ptr[11] + ptr[13] * ptr[3] * ptr[10]
-	invptr[2]  =  ptr[1] * ptr[ 6] * ptr[15] - ptr[1] * ptr[ 7] * ptr[14] - ptr[5] * ptr[2] * ptr[15] + ptr[5] * ptr[3] * ptr[14] + ptr[13] * ptr[2] * ptr[ 7] - ptr[13] * ptr[3] * ptr[ 6]
-	invptr[3]  = -ptr[1] * ptr[ 6] * ptr[11] + ptr[1] * ptr[ 7] * ptr[10] + ptr[5] * ptr[2] * ptr[11] - ptr[5] * ptr[3] * ptr[10] - ptr[ 9] * ptr[2] * ptr[ 7] + ptr[ 9] * ptr[3] * ptr[ 6]
-	invptr[4]  = -ptr[4] * ptr[10] * ptr[15] + ptr[4] * ptr[11] * ptr[14] + ptr[8] * ptr[6] * ptr[15] - ptr[8] * ptr[7] * ptr[14] - ptr[12] * ptr[6] * ptr[11] + ptr[12] * ptr[7] * ptr[10]
-	invptr[5]  =  ptr[0] * ptr[10] * ptr[15] - ptr[0] * ptr[11] * ptr[14] - ptr[8] * ptr[2] * ptr[15] + ptr[8] * ptr[3] * ptr[14] + ptr[12] * ptr[2] * ptr[11] - ptr[12] * ptr[3] * ptr[10]
-	invptr[6]  = -ptr[0] * ptr[ 6] * ptr[15] + ptr[0] * ptr[ 7] * ptr[14] + ptr[4] * ptr[2] * ptr[15] - ptr[4] * ptr[3] * ptr[14] - ptr[12] * ptr[2] * ptr[ 7] + ptr[12] * ptr[3] * ptr[ 6]
-	invptr[7]  =  ptr[0] * ptr[ 6] * ptr[11] - ptr[0] * ptr[ 7] * ptr[10] - ptr[4] * ptr[2] * ptr[11] + ptr[4] * ptr[3] * ptr[10] + ptr[ 8] * ptr[2] * ptr[ 7] - ptr[ 8] * ptr[3] * ptr[ 6]
-	invptr[8]  =  ptr[4] * ptr[ 9] * ptr[15] - ptr[4] * ptr[11] * ptr[13] - ptr[8] * ptr[5] * ptr[15] + ptr[8] * ptr[7] * ptr[13] + ptr[12] * ptr[5] * ptr[11] - ptr[12] * ptr[7] * ptr[ 9]
-	invptr[9]  = -ptr[0] * ptr[ 9] * ptr[15] + ptr[0] * ptr[11] * ptr[13] + ptr[8] * ptr[1] * ptr[15] - ptr[8] * ptr[3] * ptr[13] - ptr[12] * ptr[1] * ptr[11] + ptr[12] * ptr[3] * ptr[ 9]
-	invptr[10] =  ptr[0] * ptr[ 5] * ptr[15] - ptr[0] * ptr[ 7] * ptr[13] - ptr[4] * ptr[1] * ptr[15] + ptr[4] * ptr[3] * ptr[13] + ptr[12] * ptr[1] * ptr[ 7] - ptr[12] * ptr[3] * ptr[ 5]
-	invptr[11] = -ptr[0] * ptr[ 5] * ptr[11] + ptr[0] * ptr[ 7] * ptr[ 9] + ptr[4] * ptr[1] * ptr[11] - ptr[4] * ptr[3] * ptr[ 9] - ptr[ 8] * ptr[1] * ptr[ 7] + ptr[ 8] * ptr[3] * ptr[ 5]
-	invptr[12] = -ptr[4] * ptr[ 9] * ptr[14] + ptr[4] * ptr[10] * ptr[13] + ptr[8] * ptr[5] * ptr[14] - ptr[8] * ptr[6] * ptr[13] - ptr[12] * ptr[5] * ptr[10] + ptr[12] * ptr[6] * ptr[ 9]
-	invptr[13] =  ptr[0] * ptr[ 9] * ptr[14] - ptr[0] * ptr[10] * ptr[13] - ptr[8] * ptr[1] * ptr[14] + ptr[8] * ptr[2] * ptr[13] + ptr[12] * ptr[1] * ptr[10] - ptr[12] * ptr[2] * ptr[ 9]
-	invptr[14] = -ptr[0] * ptr[ 5] * ptr[14] + ptr[0] * ptr[ 6] * ptr[13] + ptr[4] * ptr[1] * ptr[14] - ptr[4] * ptr[2] * ptr[13] - ptr[12] * ptr[1] * ptr[ 6] + ptr[12] * ptr[2] * ptr[ 5]
-	invptr[15] =  ptr[0] * ptr[ 5] * ptr[10] - ptr[0] * ptr[ 6] * ptr[ 9] - ptr[4] * ptr[1] * ptr[10] + ptr[4] * ptr[2] * ptr[ 9] + ptr[ 8] * ptr[1] * ptr[ 6] - ptr[ 8] * ptr[2] * ptr[ 5]
-	local det = ptr[0] * invptr[0] + ptr[1] * invptr[4] + ptr[2] * invptr[8] + ptr[3] * invptr[12]
-	if det == 0 then return false end
-	local invdet = 1 / det
-	for i=0,15 do
-		invptr[i] = invptr[i] * invdet
-	end
-	return inv
-end
+	src = src or self
+	local srcp = src.ptr
+	local a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15
+		= srcp[0], srcp[1], srcp[2], srcp[3], srcp[4], srcp[5], srcp[6], srcp[7], srcp[8], srcp[9], srcp[10], srcp[11], srcp[12], srcp[13], srcp[14], srcp[15]
 
--- but I don't like allocating and returning a new matrix,
--- so here's inv4x4 but in-place
-function matrix_ffi:applyInv4x4()
---DEBUG:assert.eq(#self.size_, 2)
---DEBUG:assert.eq(self.size_[1], 4)
---DEBUG:assert.eq(self.size_[2], 4)
---DEBUG:assert(not self.rowmajor)
-	local ptr = self.ptr
+	local dstp = self.ptr
+	dstp[0]  =  a5 * a10 * a15 - a5 * a11 * a14 - a9 * a6 * a15 + a9 * a7 * a14 + a13 * a6 * a11 - a13 * a7 * a10
+	dstp[1]  = -a1 * a10 * a15 + a1 * a11 * a14 + a9 * a2 * a15 - a9 * a3 * a14 - a13 * a2 * a11 + a13 * a3 * a10
+	dstp[2]  =  a1 * a6 * a15 - a1 * a7 * a14 - a5 * a2 * a15 + a5 * a3 * a14 + a13 * a2 * a7 - a13 * a3 * a6
+	dstp[3]  = -a1 * a6 * a11 + a1 * a7 * a10 + a5 * a2 * a11 - a5 * a3 * a10 - a9 * a2 * a7 + a9 * a3 * a6
+	dstp[4]  = -a4 * a10 * a15 + a4 * a11 * a14 + a8 * a6 * a15 - a8 * a7 * a14 - a12 * a6 * a11 + a12 * a7 * a10
+	dstp[5]  =  a0 * a10 * a15 - a0 * a11 * a14 - a8 * a2 * a15 + a8 * a3 * a14 + a12 * a2 * a11 - a12 * a3 * a10
+	dstp[6]  = -a0 * a6 * a15 + a0 * a7 * a14 + a4 * a2 * a15 - a4 * a3 * a14 - a12 * a2 * a7 + a12 * a3 * a6
+	dstp[7]  =  a0 * a6 * a11 - a0 * a7 * a10 - a4 * a2 * a11 + a4 * a3 * a10 + a8 * a2 * a7 - a8 * a3 * a6
+	dstp[8]  =  a4 * a9 * a15 - a4 * a11 * a13 - a8 * a5 * a15 + a8 * a7 * a13 + a12 * a5 * a11 - a12 * a7 * a9
+	dstp[9]  = -a0 * a9 * a15 + a0 * a11 * a13 + a8 * a1 * a15 - a8 * a3 * a13 - a12 * a1 * a11 + a12 * a3 * a9
+	dstp[10] =  a0 * a5 * a15 - a0 * a7 * a13 - a4 * a1 * a15 + a4 * a3 * a13 + a12 * a1 * a7 - a12 * a3 * a5
+	dstp[11] = -a0 * a5 * a11 + a0 * a7 * a9 + a4 * a1 * a11 - a4 * a3 * a9 - a8 * a1 * a7 + a8 * a3 * a5
+	dstp[12] = -a4 * a9 * a14 + a4 * a10 * a13 + a8 * a5 * a14 - a8 * a6 * a13 - a12 * a5 * a10 + a12 * a6 * a9
+	dstp[13] =  a0 * a9 * a14 - a0 * a10 * a13 - a8 * a1 * a14 + a8 * a2 * a13 + a12 * a1 * a10 - a12 * a2 * a9
+	dstp[14] = -a0 * a5 * a14 + a0 * a6 * a13 + a4 * a1 * a14 - a4 * a2 * a13 - a12 * a1 * a6 + a12 * a2 * a5
+	dstp[15] =  a0 * a5 * a10 - a0 * a6 * a9 - a4 * a1 * a10 + a4 * a2 * a9 + a8 * a1 * a6 - a8 * a2 * a5
 
-	local a0  = ptr[0]
-	local a1  = ptr[1]
-	local a2  = ptr[2]
-	local a3  = ptr[3]
-	local a4  = ptr[4]
-	local a5  = ptr[5]
-	local a6  = ptr[6]
-	local a7  = ptr[7]
-	local a8  = ptr[8]
-	local a9  = ptr[9]
-	local a10 = ptr[10]
-	local a11 = ptr[11]
-	local a12 = ptr[12]
-	local a13 = ptr[13]
-	local a14 = ptr[14]
-	local a15 = ptr[15]
-
-	ptr[0]  =  a5 * a10 * a15 - a5 * a11 * a14 - a9 * a6 * a15 + a9 * a7 * a14 + a13 * a6 * a11 - a13 * a7 * a10
-	ptr[1]  = -a1 * a10 * a15 + a1 * a11 * a14 + a9 * a2 * a15 - a9 * a3 * a14 - a13 * a2 * a11 + a13 * a3 * a10
-	ptr[2]  =  a1 * a6 * a15 - a1 * a7 * a14 - a5 * a2 * a15 + a5 * a3 * a14 + a13 * a2 * a7 - a13 * a3 * a6
-	ptr[3]  = -a1 * a6 * a11 + a1 * a7 * a10 + a5 * a2 * a11 - a5 * a3 * a10 - a9 * a2 * a7 + a9 * a3 * a6
-	ptr[4]  = -a4 * a10 * a15 + a4 * a11 * a14 + a8 * a6 * a15 - a8 * a7 * a14 - a12 * a6 * a11 + a12 * a7 * a10
-	ptr[5]  =  a0 * a10 * a15 - a0 * a11 * a14 - a8 * a2 * a15 + a8 * a3 * a14 + a12 * a2 * a11 - a12 * a3 * a10
-	ptr[6]  = -a0 * a6 * a15 + a0 * a7 * a14 + a4 * a2 * a15 - a4 * a3 * a14 - a12 * a2 * a7 + a12 * a3 * a6
-	ptr[7]  =  a0 * a6 * a11 - a0 * a7 * a10 - a4 * a2 * a11 + a4 * a3 * a10 + a8 * a2 * a7 - a8 * a3 * a6
-	ptr[8]  =  a4 * a9 * a15 - a4 * a11 * a13 - a8 * a5 * a15 + a8 * a7 * a13 + a12 * a5 * a11 - a12 * a7 * a9
-	ptr[9]  = -a0 * a9 * a15 + a0 * a11 * a13 + a8 * a1 * a15 - a8 * a3 * a13 - a12 * a1 * a11 + a12 * a3 * a9
-	ptr[10] =  a0 * a5 * a15 - a0 * a7 * a13 - a4 * a1 * a15 + a4 * a3 * a13 + a12 * a1 * a7 - a12 * a3 * a5
-	ptr[11] = -a0 * a5 * a11 + a0 * a7 * a9 + a4 * a1 * a11 - a4 * a3 * a9 - a8 * a1 * a7 + a8 * a3 * a5
-	ptr[12] = -a4 * a9 * a14 + a4 * a10 * a13 + a8 * a5 * a14 - a8 * a6 * a13 - a12 * a5 * a10 + a12 * a6 * a9
-	ptr[13] =  a0 * a9 * a14 - a0 * a10 * a13 - a8 * a1 * a14 + a8 * a2 * a13 + a12 * a1 * a10 - a12 * a2 * a9
-	ptr[14] = -a0 * a5 * a14 + a0 * a6 * a13 + a4 * a1 * a14 - a4 * a2 * a13 - a12 * a1 * a6 + a12 * a2 * a5
-	ptr[15] =  a0 * a5 * a10 - a0 * a6 * a9 - a4 * a1 * a10 + a4 * a2 * a9 + a8 * a1 * a6 - a8 * a2 * a5
-
-	local det = a0 * ptr[0] + a1 * ptr[4] + a2 * ptr[8] + a3 * ptr[12]
+	local det = a0 * dstp[0] + a1 * dstp[4] + a2 * dstp[8] + a3 * dstp[12]
 	if det == 0 then
 		-- if this is in-place then do we error or return an extra flag or something?
 		for i=0,15 do
-			ptr[i] = 0/0
+			dstp[i] = 0/0
 		end
 		return self, 'singular'
 	end
 
 	local invdet = 1 / det
 	for i=0,15 do
-		ptr[i] = ptr[i] * invdet
+		dstp[i] = dstp[i] * invdet
 	end
 
 	return self
