@@ -1166,7 +1166,7 @@ end
 -- https://www.mathworks.com/help/matlab/ref/expm.html
 function matrix_ffi.expm(A)
 	local D, VR, VL, beta, Di = matrix_ffi(A):eig()
-	--local isComplex = A.ctype:find'complex'
+	--local isComplex = tostring(A.ctype):find'complex'
 	if not Di then
 		assert(complex)	-- complex should exist if A.ctype is a complex type
 		D = D:map(complex.exp)
