@@ -305,7 +305,7 @@ function matrix_ffi:__call(...)
 		end
 		return self.ptr[index]
 	else	-- n < deg
-		local size = self:size():toLuaMatrix()	-- switch to matrix_lua to use slicing (which I haven't added to matrix_ffi yet ...)
+		local size = self.size_:toLuaMatrix()	-- switch to matrix_lua to use slicing (which I haven't added to matrix_ffi yet ...)
 		local newsize = matrix_ffi{deg-n}:lambda(function(j)
 			return size[n+j]
 		end)
@@ -516,7 +516,7 @@ function matrix_ffi:range()
 end
 
 function matrix_ffi:iter()
-	return self:size():range()
+	return self.size_:range()
 end
 
 
@@ -1181,7 +1181,7 @@ matrix_ffi.determinant = require 'matrix.determinant'
 matrix_ffi.det = matrix_ffi.determinant
 
 function matrix_ffi:copy(src)
-	assert.eq(self:size(), src:size())
+	assert.eq(self.size_, src.size_)
 	ffi.copy(self.ptr, src.ptr, ffi.sizeof(self.ctype) * self.volume)
 	return self
 end
