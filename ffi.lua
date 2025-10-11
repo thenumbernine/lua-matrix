@@ -5,6 +5,12 @@ local class = require 'ext.class'
 local table = require 'ext.table'
 local assert = require 'ext.assert'
 
+local float = ffi.typeof'float'
+local double = ffi.typeof'double'
+-- TODO pcall?  in case its not supported?
+local complex_float = ffi.typeof'complex float'
+local complex_double = ffi.typeof'complex double'
+
 local complex
 local function requireComplex()
 	complex = require 'complex'
@@ -18,7 +24,7 @@ local matrix_ffi = class()
 
 -- override this to specify a default for the ctor ctype parameter
 -- TODO just call this .ctype and use it as a fallback field
-matrix_ffi.real = 'double'
+matrix_ffi.real = double
 
 local function isnumber(x)
 	local xt = type(x)
@@ -99,21 +105,20 @@ function matrix_ffi:init(src, ctype, size, rowmajor)
 		end
 	end
 
-	self.ctype = ctype 			-- ctype arg
+	self.ctype = ffi.typeof(
+		ctype 			-- ctype arg
 		or (src and src.ctype) 	-- src ctype
 		or self.real 			-- default ctype
+	)
 
 	-- if we're building a matrix with complex ctype ...
-	if self.ctype:lower():find'complex' then
+	if tostring(self.ctype):lower():find'complex' then
 		-- then make sure complex ctypes have their metamethods defined
 		requireComplex()
 	end
-	-- use only one name for when multiple work
-	-- idk how i'll handle typedefs
-	-- is there a luajit ffi api for looking up typedef original types?
-	if self.ctype == 'complex' then self.ctype = 'complex double' end
 
-	self.ptr = ffi.new(self.ctype..'[?]', math.max(self.volume,1))
+	local ctypeArray = ffi.typeof('$[?]', self.ctype)
+	self.ptr = ffi.new(ctypeArray, math.max(self.volume,1))
 
 	if matrix_ffi:isa(src) then
 --DEBUG:print('...matrix_ffi:init reading src as matrix_ffi')
@@ -151,7 +156,7 @@ function matrix_ffi.const(value, dims, ctype, ...)
 --DEBUG:print('matrix_ffi.const', value, dims, ctype, ...)
 	ctype = ctype or dims.ctype
 	assert.type(dims, 'table')
-	if not (ctype == nil or type(ctype) == 'string') then
+	if not (ctype == nil or ffi.typeof(ctype) == ctype) then
 		error("got unknown ctype: "..require 'ext.tolua'(ctype))
 	end
 --DEBUG:print('...matrix_ffi.const dims src', table.unpack(dims))
@@ -175,7 +180,7 @@ function matrix_ffi.zeros(...)
 	else
 		local dims, ctype = ...
 		ctype = ctype or dims.ctype
-		assert(ctype == nil or type(ctype) == 'string')
+		assert(ctype == nil or ffi.typeof(ctype) == ctype, "expected nil or a ffi.typeof object")
 		local result = matrix_ffi.const(0, dims, ctype, select(3, ...))
 --DEBUG:print('...matrix_ffi.zeros(', ..., ') returning', result.size_)
 		return result
@@ -194,7 +199,7 @@ function matrix_ffi.lambda(size, f, result, ctype, rowmajor)
 		and size
 		or matrix_ffi(size)
 	ctype = ctype or size.ctype
-	if not (ctype == nil or type(ctype) == 'string') then
+	if not (ctype == nil or ffi.typeof(ctype) == ctype) then
 		error("got unknown ctype: "..require 'ext.tolua'(ctype))
 	end
 	if size:degree() == 0 then return f() end
@@ -963,17 +968,17 @@ end
 -- so maybe I'll change the matrix_ffi ctor to swap that out
 
 local scalarTypeForComplexType = {
-	float = 'float',
-	double = 'double',
-	['complex float'] = 'float',
-	['complex double'] = 'double',
+	[float] = float,
+	[double] = double,
+	[complex_float] = float,
+	[complex_double] = double,
 }
 
 local lapackeLetterForType = {
-	float = 's',
-	double = 'd',
-	['complex float'] = 'c',
-	['complex double'] = 'z',
+	[float] = 's',
+	[double] = 'd',
+	[complex_float] = 'c',
+	[complex_double] = 'z',
 }
 
 local function getLapackeNameForType(ctype, name)
@@ -1022,7 +1027,8 @@ function matrix_ffi.svd(A)
 --print('S.ctype', S.ctype)
 	local VT = matrix_ffi(nil, A.ctype, size, A.rowmajor)
 --print('VT.ctype', VT.ctype)
-	local superb = ffi.new(scalarType..'[2]') -- ... ???
+	local scalarTypeArray2 = ffi.tyepof('$[2]', scalarType)
+	local superb = ffi.new(scalarTypeArray2) -- ... ???
 	lapacke[svdName](
 		A.rowmajor and lapacke.LAPACK_ROW_MAJOR or lapacke.LAPACK_COL_MAJOR,	-- int matrix_layout,
 		('A'):byte(),				-- char jobu,	-- all m columns (the left singluar vectors) are returned in array u.
@@ -1059,8 +1065,8 @@ function matrix_ffi.eig(A, B)
 	local alphai
 	-- too bad, I was really hoping all lapack functions of matching suffixes has matching # of args
 	local Affitype = ffi.typeof(A.ctype)
-	if Affitype == ffi.typeof'complex float'
-	or Affitype == ffi.typeof'complex double'
+	if Affitype == complex_float
+	or Affitype == complex_double
 	then
 --print("cplx path")
 		lapacke[eigName](
@@ -1078,8 +1084,8 @@ function matrix_ffi.eig(A, B)
 			n,							-- int ldvl,
 			VR.ptr,						-- float __complex__* vr,
 			n)							-- int ldvr
-	elseif Affitype == ffi.typeof'float'
-	or Affitype == ffi.typeof'double'
+	elseif Affitype == float
+	or Affitype == double
 	then
 --print("real path")
 		alphai = matrix_ffi(nil, A.ctype, {n}, A.rowmajor)
@@ -1191,7 +1197,7 @@ local ident = matrix_ffi({
 	{0,1,0,0},
 	{0,0,1,0},
 	{0,0,0,1},
-}, 'float')
+}, float)
 
 -- optimized ... default mul of arbitrary-rank inner-product is verrrry slow
 function matrix_ffi:mul4x4(a,b)
@@ -1251,7 +1257,7 @@ function matrix_ffi:mul4x4v4(x,y,z,w)
 end
 
 function matrix_ffi:setIdent()
-	if self.type == 'float' then
+	if self.type == float then
 		return self:copy(ident)
 	end
 	self.ptr[0],  self.ptr[1],  self.ptr[2],  self.ptr[3]  = 1, 0, 0, 0
@@ -1726,7 +1732,7 @@ end
 function matrix_ffi:applyPerspective(...)
 	return self:mul4x4(
 		self,
-		matrix_ffi({4,4},'float'):zeros():setPerspective(...)
+		matrix_ffi({4, 4}, float):zeros():setPerspective(...)
 	)
 end
 
