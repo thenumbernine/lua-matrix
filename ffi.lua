@@ -118,7 +118,7 @@ function matrix_ffi:init(src, ctype, size, rowmajor)
 	end
 
 	local ctypeArray = ffi.typeof('$[?]', self.ctype)
-	self.ptr = ffi.new(ctypeArray, math.max(self.volume,1))
+	self.ptr = ctypeArray(math.max(self.volume, 1))
 
 	if matrix_ffi:isa(src) then
 --DEBUG:print('...matrix_ffi:init reading src as matrix_ffi')
@@ -132,7 +132,7 @@ function matrix_ffi:init(src, ctype, size, rowmajor)
 				self.ptr[i] = src.ptr[i]
 			end
 			if mn < self.volume then
-				local zero = ffi.new(self.ctype)
+				local zero = self.ctype()
 				for i=mn,self.volume-1 do
 					self.ptr[i] = zero
 				end
@@ -940,7 +940,7 @@ function matrix_ffi:diag(i)
 			srcj:remove(i)
 			return self[srcj]
 		else
-			return ffi.new(self.ctype)
+			return self.ctype()
 		end
 	end, nil, self.ctype)
 end
@@ -1028,7 +1028,7 @@ function matrix_ffi.svd(A)
 	local VT = matrix_ffi(nil, A.ctype, size, A.rowmajor)
 --print('VT.ctype', VT.ctype)
 	local scalarTypeArray2 = ffi.tyepof('$[2]', scalarType)
-	local superb = ffi.new(scalarTypeArray2) -- ... ???
+	local superb = scalarTypeArray2() -- ... ???
 	lapacke[svdName](
 		A.rowmajor and lapacke.LAPACK_ROW_MAJOR or lapacke.LAPACK_COL_MAJOR,	-- int matrix_layout,
 		('A'):byte(),				-- char jobu,	-- all m columns (the left singluar vectors) are returned in array u.
