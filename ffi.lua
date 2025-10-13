@@ -1468,11 +1468,9 @@ function matrix_ffi:setLookAt(ex,ey,ez,cx,cy,cz,upx,upy,upz)
 	return self:applyTranslate(-ex, -ey, -ez)
 end
 -- TODO optimize the in-place apply instead of this slow crap:
+local tmp = matrix_ffi{4,4}:zeros()
 function matrix_ffi:applyLookAt(...)
-	return self:mul4x4(
-		self,
-		matrix_ffi{4,4}:zeros():setLookAt(...)
-	)
+	return self:mul4x4(self, tmp:setLookAt(...))
 end
 
 -- axis is expected to be unit
