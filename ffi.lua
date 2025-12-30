@@ -108,7 +108,7 @@ function matrix_ffi:init(src, ctype, size, rowmajor)
 	self.ctype = ffi.typeof(
 		ctype 			-- ctype arg
 		or (src and src.ctype) 	-- src ctype
-		or self.real 			-- default ctype
+		or self.real 			-- default ctype ... TODO why not matrix_ffi.ctype?
 	)
 
 	-- if we're building a matrix with complex ctype ...
@@ -1187,7 +1187,7 @@ function matrix_ffi:copy(src)
 end
 
 function matrix_ffi:clone()
-	return matrix_ffi(self, self.type, self.size, self.rowmajor)
+	return matrix_ffi(self, self.ctype, self.size, self.rowmajor)
 end
 
 -- glsl functions:
@@ -1257,7 +1257,7 @@ function matrix_ffi:mul4x4v4(x,y,z,w)
 end
 
 function matrix_ffi:setIdent()
-	if self.type == float then
+	if self.ctype == float then
 		return self:copy(ident)
 	end
 	self.ptr[0],  self.ptr[1],  self.ptr[2],  self.ptr[3]  = 1, 0, 0, 0
