@@ -658,7 +658,7 @@ function matrix_ffi.inner(a,b,metric,aj,bj, c)
 		elseif degb == 2 then
 			if aj == 2 and bj == 1 then
 				local a1, a2 = table.unpack(a.size_)
-				local b1, b2 = table.unpack(a.size_)
+				local b1, b2 = table.unpack(b.size_)
 				assert.eq(a2, b1)
 				local c1 = a1
 				local c2 = b2
