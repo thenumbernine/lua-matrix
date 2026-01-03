@@ -347,7 +347,8 @@ function matrix_ffi:__call(...)
 --DEBUG:assert.le(index, rawget(self, 'volume'))
 		return self.ptr[index]
 	else	-- n < deg
-		local size = self.size_:toLuaMatrix()	-- switch to matrix_lua to use slicing (which I haven't added to matrix_ffi yet ...)
+		local size = self.size_
+--DEBUG:assert.is(size, matrix_lua)
 		local newsize = matrix_ffi{deg-n}:lambda(function(j)
 			return size[n+j]
 		end)
