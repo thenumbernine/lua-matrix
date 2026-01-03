@@ -57,92 +57,121 @@ function matrix_ffi:init(src, ctype, size, rowmajor)
 	-- the size member can't be a matrix_ffi or we'll get infinite recursion ...
 	-- so I could make it a regular table
 	-- but why not a matrix_lua, so we get some similar functionality?
+	local size_
 	if matrix_ffi:isa(src) then
 --DEBUG:print('...matrix_ffi:init getting size from src type matrix_ffi')
 --DEBUG:print('...src:size():unpack() = ', src:size():unpack())
-		self.size_ = matrix_lua{src:size():unpack()}
---DEBUG:print('...self.size_ = ', self.size_)
+		size_ = matrix_lua{src:size():unpack()}
+--DEBUG:print('...self.size_ = ', size_)
 	elseif matrix_lua:isa(src) then
 --DEBUG:print('...matrix_ffi:init getting size from src type matrix_lua')
 --DEBUG:print('...src:size() = ', src:size())
-		self.size_ = src:size()
---DEBUG:print('...self.size_ = ', self.size_)
+		size_ = src:size()
+--DEBUG:print('...self.size_ = ', size_)
 	elseif size then
 		if matrix_ffi:isa(size) then
 --DEBUG:print('...matrix_ffi:init getting size from size type matrix_ffi')
-			self.size_ = matrix_lua{size:unpack()}
+			size_ = matrix_lua{size:unpack()}
 		elseif type(size) == 'table' then
 --DEBUG:print('...matrix_ffi:init getting size from size type table')
-			self.size_ = matrix_lua{table.unpack(size)}
+			size_ = matrix_lua{table.unpack(size)}
 		else
 --DEBUG:print('...matrix_ffi:init getting size from size type '..type(size))
-			self.size_ = matrix_lua{size}
+			size_ = matrix_lua{size}
 		end
 	else
 --DEBUG:print('...matrix_ffi:init getting size from nil size type '..type(size))
 		assert.eq(src, nil)
-		self.size_ = matrix_lua{0}
+		size_ = matrix_lua{0}
 	end
 --DEBUG:print('...size is', self.size_)
-
-	self.volume = self.size_:prod()
+	local degree = #size_
+	rawset(self, 'size_', size_)
+	local volume = size_:prod()
+	rawset(self, 'volume',  volume)
 
 	-- TODO make rowmajor default.  make colmajor optional? for glsl's sake? or just nah?
 	if rowmajor == nil and src and src.rowmajor ~= nil then
 		rowmajor = src.rowmajor
 	end
-	self.rowmajor = rowmajor
-	self.step = matrix_lua(self.size_)
+	rawset(self, 'rowmajor', rowmajor)
+	local step = matrix_lua(size_)
 	if rowmajor then
-		self.step[#self.size_] = 1
-		for i=#self.size_-1,1,-1 do
-			self.step[i] = self.step[i+1] * self.size_[i+1]
+		step[#size_] = 1
+		for i=#size_-1,1,-1 do
+			step[i] = step[i+1] * size_[i+1]
 		end
 	else
-		self.step[1] = 1
-		for i=2,#self.size_ do
-			self.step[i] = self.step[i-1] * self.size_[i-1]
+		step[1] = 1
+		for i=2,#size_ do
+			step[i] = step[i-1] * size_[i-1]
 		end
 	end
+	rawset(self, 'step', step)
 
-	self.ctype = ffi.typeof(
+	ctype = ffi.typeof(
 		ctype 			-- ctype arg
 		or (src and src.ctype) 	-- src ctype
 		or self.real 			-- default ctype ... TODO why not matrix_ffi.ctype?
 	)
+	rawset(self, 'ctype', ctype)
 
 	-- if we're building a matrix with complex ctype ...
-	if tostring(self.ctype):lower():find'complex' then
+	if tostring(ctype):lower():find'complex' then
 		-- then make sure complex ctypes have their metamethods defined
 		requireComplex()
 	end
 
-	local ctypeArray = ffi.typeof('$[?]', self.ctype)
-	self.ptr = ctypeArray(math.max(self.volume, 1))
+	local ctypeArray = ffi.typeof('$[?]', ctype)
+	local ptr = ctypeArray(math.max(volume, 1))
+	rawset(self, 'ptr', ptr)
 
 	if matrix_ffi:isa(src) then
+		local srcdegree = src:degree()
+		-- NOTICE this only works if all rowmajors of all children match as well ...
+		if (
+			-- degree-1, vectors, copy, doesn't matter
+			(
+				degree == 1
+				and srcdegree == 1
+			)
+			-- degree-2 will work so long as rowmajor matches
+			or (
+				degree == 2
+				and srcdegree == 2
+				and rowmajor == src.rowmajor
+			)
+			-- for degree >= 3, we need to ensure *all* children's rowmajor matches in order to use ffi.copy...
+		) then
+			local srcptr = rawget(src, 'ptr')
 --DEBUG:print('...matrix_ffi:init reading src as matrix_ffi')
-		if src.ctype == self.ctype then
+			if src.ctype == ctype then
 --DEBUG:print('...matrix_ffi:init reading src as matrix_ffi with matching ctype -- ffi.copy')
-			ffi.copy(self.ptr, src.ptr, ffi.sizeof(self.ctype) * self.volume)
-		else
+				ffi.copy(ptr, srcptr, ffi.sizeof(ctype) * volume)
+			else
 --DEBUG:print('...matrix_ffi:init reading src as matrix_ffi with differing ctype -- iterate and assign')
-			local mn = math.min(self.volume, src.volume)
-			for i=0,mn-1 do
-				self.ptr[i] = src.ptr[i]
-			end
-			if mn < self.volume then
-				local zero = self.ctype()
-				for i=mn,self.volume-1 do
-					self.ptr[i] = zero
+				local mn = math.min(volume, src.volume)
+				for i=0,mn-1 do
+					ptr[i] = srcptr[i]
+				end
+				if mn < volume then
+					local zero = ctype()
+					for i=mn,volume-1 do
+						ptr[i] = zero
+					end
 				end
 			end
+			-- bail out, don't use our generic number-filler below
+			return
 		end
-	elseif src ~= nil then
+	end
+
+	-- if we didn't return then use our generic init here
+	if src == nil then return end
+
 --DEBUG:print('...matrix_ffi:init reading src as non-nil')
-		for i in src:iter() do
-			self[i] = src[i]
-		end
+	for i in src:iter() do
+		self[i] = src[i]
 	end
 end
 
@@ -194,6 +223,7 @@ end
 
 -- could match matrix_lua except the matrix ref, if I copied it back over, but it might be slightly slower?
 function matrix_ffi.lambda(size, f, result, ctype, rowmajor)
+--DEBUG(@5):print('matrix_ffi.lambda '..size)
 	--[[ this might be compatible with matrix.lambda
 	size = matrix_ffi:isa(size)
 		and size
@@ -217,18 +247,24 @@ function matrix_ffi.lambda(size, f, result, ctype, rowmajor)
 	result = result or matrix_ffi(nil, ctype, size, rowmajor)
 	if #size == 1 then
 		local rptr = result.ptr
+--DEBUG:assert.type(rptr, 'cdata')
 		for i=0,size[1]-1 do
+--DEBUG:assert.le(0, i)
+--DEBUG:assert.lt(i, result.volume)
 			rptr[i] = f(i+1)
 		end
 	-- [=[
 	elseif #size == 2 then
 		local rptr = result.ptr
-		local w = result.size_[1]
-		local h = result.size_[2]
+--DEBUG:assert.type(rptr, 'cdata')
+		local h = result.size_[1]
+		local w = result.size_[2]
 		local k = 0
 		if not rowmajor then
 			for j=0,w-1 do
 				for i=0,h-1 do
+--DEBUG:assert.le(0, k)
+--DEBUG:assert.lt(k, result.volume)
 					rptr[k] = f(i+1, j+1)
 					k = k + 1
 				end
@@ -236,6 +272,8 @@ function matrix_ffi.lambda(size, f, result, ctype, rowmajor)
 		else
 			for i=0,h-1 do
 				for j=0,w-1 do
+--DEBUG:assert.le(0, k)
+--DEBUG:assert.lt(k, result.volume)
 					rptr[k] = f(i+1, j+1)
 					k = k + 1
 				end
@@ -255,6 +293,7 @@ end
 
 -- returns the matrix size
 -- size_ is stored as a matrix_lua, but :size() will return a matrix_ffi
+-- HMM why re-wrap size_ with matrix_ffi ... maybe I should just return a matrix() of size_ ?
 function matrix_ffi:size()
 	return matrix_ffi(self.size_
 		-- if I use ctype here then it gets forwarded into lambda
@@ -292,6 +331,7 @@ end
 -- only handles m(i1,...,iN) for N = the degree of the matrix m
 -- no submatrix access, no slicing, etc.
 function matrix_ffi:__call(...)
+--DEBUG:assert.type(rawget(self, 'ptr'), 'cdata')
 	local firstI = ...
 	local n = select('#', ...)
 	if type(firstI) == 'table' then error'TODO' end
@@ -303,6 +343,8 @@ function matrix_ffi:__call(...)
 		for j=1,n do
 			index = index + (select(j, ...) - 1) * self.step[j]
 		end
+--DEBUG:assert.le(0, index)
+--DEBUG:assert.le(index, rawget(self, 'volume'))
 		return self.ptr[index]
 	else	-- n < deg
 		local size = self.size_:toLuaMatrix()	-- switch to matrix_lua to use slicing (which I haven't added to matrix_ffi yet ...)
@@ -326,8 +368,12 @@ end
 
 -- matches matrix_lua except the matrix ref
 function matrix_ffi:__index(i)
+	if type(i) == 'string' then return getmetatable(self)[i] end	-- if it's a string ... and by here it isn't a field in the object ... then maybe it's a field in the metatable?
+--DEBUG:assert.type(rawget(self, 'ptr'), 'cdata', "failed to __index "..require 'ext.tolua'(i))
 	if type(i) == 'number' then
 		if self:degree() == 1 then
+--DEBUG:assert.le(1, i)
+--DEBUG:assert.le(i, rawget(self, 'volume'))
 			return self.ptr[i-1]
 		else
 			-- [[ readwrite, but only single-element at a time ...
@@ -335,8 +381,8 @@ function matrix_ffi:__index(i)
 				if i < 1 or i > self.size_[1] then
 					error("got OOB index "..tostring(i)..", should be within 1 and "..tostring(self.size_[1]))
 				end
-				assert.le(1, i)
-				assert.le(i, self.size_[1])
+--DEBUG:assert.le(1, i)
+--DEBUG:assert.le(i, rawget(self, 'size_')[1])
 				-- TODO this is all a copy of matrix_ffi:init
 				-- how about instead I work in this ptr as an arg in place of 'src' somehow ...
 				-- or a better TODO would be to just throw out this whole class and replace it with a pure-ffi class that only used 0-index access and didn't have any Lua tables
@@ -443,6 +489,7 @@ function matrix_ffi:__newindex(i,v)
 	end
 end
 
+-- I am jumping through such hoops just to make this matrix API match the pure-Lua matrix API
 function matrix_ffi:__len()
 	return self.size_[1]
 end
@@ -879,10 +926,17 @@ function matrix_ffi:transpose(aj,bj)
 	aj = aj or 1
 	bj = bj or 2
 	local size = self:size()
+--DEBUG(@5):io.write('matrix_ffi.transpose src size '..size, '\n')
 	size[aj], size[bj] = size[bj], size[aj]
+--DEBUG(@5):io.write('matrix_ffi.transpose dst size '..size, '\n')
 	return matrix_ffi.lambda(size, function(...)
+--DEBUG(@5):io.write('matrix_ffi:transpose')
 		local si = {...}
+--DEBUG(@5):io.write(' writing ', require 'ext.tolua'(si), ' ')
 		si[aj], si[bj] = si[bj], si[aj]
+--DEBUG(@5):io.write(' reading ', require 'ext.tolua'(si), ' ')
+--DEBUG(@5):io.write(require 'ext.tolua'(self[si]))
+--DEBUG(@5):print()
 		return self[si]
 	end, nil, self.ctype)
 end
