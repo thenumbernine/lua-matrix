@@ -185,8 +185,8 @@ function matrix_ffi.const(value, dims, ctype, ...)
 --DEBUG:print('matrix_ffi.const', value, dims, ctype, ...)
 	ctype = ctype or dims.ctype
 	assert.type(dims, 'table')
-	if not (ctype == nil or ffi.typeof(ctype) == ctype) then
-		error("got unknown ctype: "..require 'ext.tolua'(ctype))
+	if ctype ~= nil then
+		ctype = ffi.typeof(ctype)
 	end
 --DEBUG:print('...matrix_ffi.const dims src', table.unpack(dims))
 	local dimsMat = matrix_ffi(dims)
@@ -209,7 +209,7 @@ function matrix_ffi.zeros(...)
 	else
 		local dims, ctype = ...
 		ctype = ctype or dims.ctype
-		assert(ctype == nil or ffi.typeof(ctype) == ctype, "expected nil or a ffi.typeof object")
+		if ctype ~= nil then ctype = ffi.typeof(ctype) end
 		local result = matrix_ffi.const(0, dims, ctype, select(3, ...))
 --DEBUG:print('...matrix_ffi.zeros(', ..., ') returning', result.size_)
 		return result
@@ -229,8 +229,8 @@ function matrix_ffi.lambda(size, f, result, ctype, rowmajor)
 		and size
 		or matrix_ffi(size)
 	ctype = ctype or size.ctype
-	if not (ctype == nil or ffi.typeof(ctype) == ctype) then
-		error("got unknown ctype: "..require 'ext.tolua'(ctype))
+	if ctype ~= nil then
+		ctype = ffi.typeof(ctype)
 	end
 	if size:degree() == 0 then return f() end
 	if not result then result = size:zeros(ctype) end
