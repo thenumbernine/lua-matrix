@@ -1836,4 +1836,13 @@ function matrix_ffi:inv4x4(src)
 	return self
 end
 
+function matrix_ffi:transpose4x4(src)
+	src = src or self
+	local srcp = src.ptr
+	local dstp = self.ptr
+	dstp[0], dstp[4], dstp[8], dstp[12], dstp[1], dstp[5], dstp[9], dstp[13], dstp[2], dstp[6], dstp[10], dstp[14], dstp[3], dstp[7], dstp[11], dstp[15]
+	= srcp[0], srcp[1], srcp[2], srcp[3], srcp[4], srcp[5], srcp[6], srcp[7], srcp[8], srcp[9], srcp[10], srcp[11], srcp[12], srcp[13], srcp[14], srcp[15]
+	return self
+end
+
 return matrix_ffi
