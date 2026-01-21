@@ -13,11 +13,11 @@ local matrix = class()
 matrix.index = _
 
 function matrix:init(t, ...)
-	if type(t) == 'table' 
+	if type(t) == 'table'
 	and not t.isZero		-- cheap bignumber test
 	then
 		for i=1,#t do
-			if type(t[i]) == 'table' 
+			if type(t[i]) == 'table'
 			and not t[i].isZero
 			then
 				self[i] = matrix(t[i])
