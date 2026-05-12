@@ -3,6 +3,8 @@
 --------------------------------------------
 
 name = "matrix"
+git = "https://github.com/thenumbernine/lua-matrix"
+
 files = {
 	"README.md",
 	"curl.lua",
